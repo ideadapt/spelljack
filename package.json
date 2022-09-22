@@ -1,0 +1,10 @@
+{
+  "name": "spelljack",
+  "version": "1.0.0",
+  "description": "",
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "vanilla-jsoneditor": "^0.7.5"
+  }
+}

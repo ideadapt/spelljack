@@ -1,0 +1,178 @@
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script type="module">
+            import config from '/config.js'
+            window.key = config.key
+        </script>
+        <script>
+            const sitemapUrl = 'https://www.digitale-gesellschaft.ch/sitemaps/post-sitemap1.xml'
+            const baseUrlRegex = /https:\/\/www.(digitale-gesellschaft|societe-numerique).ch\/\d\d\d\d\/\d\d\/\d\d\//
+        
+            async function articleUrls(sitemapUrl){
+                const sitemapRes = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(sitemapUrl)}`)
+                if(sitemapRes.ok){
+                    const xml = JSON.parse(await sitemapRes.text()).contents
+                    const parser = new DOMParser()
+                    const xmlDoc = parser.parseFromString(xml, "text/xml")
+                    return [...xmlDoc.querySelectorAll("loc")].map(el => el.textContent).slice(1)
+                }else{
+                    throw sitemapRes
+                }
+            }
+
+            async function extractArticleContent(articleUrl){
+                const articleRes = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(articleUrl)}`)
+                if(articleRes.ok){
+                    const xml = JSON.parse(await articleRes.text()).contents
+                    const parser = new DOMParser()
+                    const xmlDoc = parser.parseFromString(xml, "text/html")
+                    return {
+                        title: xmlDoc.querySelector(".main .entry-title").innerText,
+                        text: xmlDoc.querySelector(".main .entry-content").innerText,
+                        date: xmlDoc.querySelector(".main .entry-meta time").getAttribute('datetime')
+                    }
+                }else{
+                    throw articleRes
+                }
+            }
+
+            function normalizeContent(articleContent){
+                return articleContent.split(/[ \n]+/g).join(' ')
+            }
+
+            async function checkSpelling(text){
+                const key = window.key
+                console.log(key)
+                const url = `https://api.textgears.com/spelling`
+                const spellRes = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'content-type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        language: "de-CH",
+                        key,
+                        text
+                    })
+                })
+                if(spellRes.ok){
+                    const json = await spellRes.json()
+                    return json.response.errors
+                }else{
+                    throw spellRes
+                }
+            }
+            //const errors = await checkSpelling(normalizedContent)
+            /** error is: 
+                bad: "EDRi-Netzwerk"
+                better: Array(5) [ "DDR-Netzwerk", "Der-Netzwerk", "NDR-Netzwerk", … ]
+                description: Object { en: "Möglicher Tippfehler gefunden." }
+                id: "e33121016"
+                length: 13
+                offset: 5
+                type: "spelling" 
+                */
+
+
+            function mapToFindings(errors, url){
+                return errors.map(e => {
+                    return {
+                        word: e.bad,
+                        ignore: false,
+                        refs: [url]
+                    }
+                })
+            }
+
+            const storeName = 'spellcheck'
+            function loadState(){
+                const item = localStorage.getItem(storeName)
+                if(!item){
+                    const newItem = {
+                        findings: []
+                    }
+                    localStorage.setItem(storeName, JSON.stringify(newItem))
+                    return newItem
+                }
+                return JSON.parse(item)
+            }
+            function storeState(state){
+                localStorage.setItem(storeName, JSON.stringify(state))
+            }
+
+            function storeFindings(findings){
+                const existing = loadState()
+                existing.findings = findings
+                storeState(existing)
+            }
+
+            function loadFindings(){
+                return loadState().findings
+            }
+
+            function mergeFindings(findings, existingFindings){
+                const newFindings = new Set(findings)
+                for(const newFinding of newFindings){
+                    const existing = existingFindings.find(ef => ef.word === newFinding.word)
+                    if(existing){
+                        existing.refs.push(newFinding.refs[0])
+                        existing.refs = [...new Set(existing.refs)]
+                        newFindings.delete(newFinding)
+                    }
+                }
+                existingFindings.push(...(newFindings.values()))
+                return existingFindings
+            }
+
+            // TODO 
+            // - remove all existing findings for that article, that where not found in this check
+            // - ignore a word
+            // - filter findings by ignore state
+            // - add article action buttons: scan, show-findings
+
+            function state(){
+                return {
+                    articleUrls: [],
+                    findings: [],
+                    async init(){
+                        console.log('init')
+                        this.articleUrls = await articleUrls(sitemapUrl)
+                        // editor.set({json: loadFindings()})
+                    },
+                    async scan(url){
+                        console.log('scanning', url)
+                        const content = await extractArticleContent(url)
+                        const errors = await checkSpelling(normalizeContent(content.text))
+                        const findings = mapToFindings(errors, url)
+                        console.log('findings', findings)
+                        
+                        const allFindings = mergeFindings(findings, loadFindings())
+                        storeFindings(allFindings)
+                        
+                        // editor.set({json: allFindings})
+                    }
+                }
+            }
+        </script>
+        <script defer src="https://cdn.tailwindcss.com"></script>
+        <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    </head>
+    <body x-data="state()" class="font-sans m-5 grid grid-cols-2 gap-4">
+        <article>
+            <h1 class="text-xl">Articles</h1>
+            <table class="maxd">
+                <template x-for="articleUrl in articleUrls">
+                    <tr class="odd:bg-white even:bg-slate-50" x-on:click="scan(`${articleUrl}`)">
+                        <td x-text="`${articleUrl.replace(baseUrlRegex, '').replace(/\/$/, '')}`"></td>
+                    </tr>
+                </template>
+            </table>
+        </article>
+        <article>
+            <h1 class="text-xl">Findings</h1>
+            <div id="jsoneditor"></div>
+        </article>
+    </body>
+</html>
