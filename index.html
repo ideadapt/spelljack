@@ -4,7 +4,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <script type="module">
             import config from '/config.js'
-            window.key = config.key
+            window.spelljack = config
         </script>
         <script>
             const sitemapUrl = 'https://www.digitale-gesellschaft.ch/sitemaps/post-sitemap1.xml'
@@ -45,7 +45,7 @@
             }
 
             async function checkSpelling(text){
-                const key = window.key
+                const key = window.spelljack.key
                 const url = `https://api.textgears.com/spelling`
                 const spellRes = await fetch(url, {
                     method: 'POST',
@@ -63,6 +63,43 @@
                     return [...new Map(json.response.errors.map(error => [error.bad, error])).values()]
                 }else{
                     throw spellRes
+                }
+            }
+
+            async function createDictionary(name){
+                const response = await fetch(`https://api.textgears.com/custom/createdictionary?key=${window.spelljack.key}&id=${window.spelljack.dict_key}&title=${window.spelljack.dict_title}`,
+                    {
+                        method: 'POST'
+                    }
+                )
+                if(!response.ok){
+                    throw response
+                }
+            }
+
+            async function ignoreFinding(finding){
+                const response = await fetch(`https://api.textgears.com/custom/addexception?key=${window.spelljack.key}&dictionary_id=${window.spelljack.dict_key}&type=2&lang=de-CH&text=${finding.word}`, 
+                {
+                    method: 'POST'
+                })
+                if(response.ok){
+                    finding.exceptionId = (await response.json()).response.id
+                    finding.ignore = true
+                } else {
+                    throw response
+                }
+                
+            }
+            async function unIgnoreFinding(finding){
+                const response = await fetch(`https://api.textgears.com/custom/deleteexception?key=${window.spelljack.key}&id=${finding.exceptionId}`, 
+                {
+                    method: 'POST'
+                })
+                if(response.ok){
+                    finding.exceptionId = null
+                    finding.ignore = false
+                } else {
+                    throw response
                 }
             }
             //const errors = await checkSpelling(normalizedContent)
@@ -83,6 +120,7 @@
                         word: e.bad,
                         ignore: false,
                         selected: false,
+                        show: true,
                         refs: [url]
                     }
                 })
@@ -106,7 +144,7 @@
 
             function storeFindings(findings){
                 const existing = loadState()
-                existing.findings = findings
+                existing.findings = findings.map(f => ({...f, selected: false}))
                 storeState(existing)
             }
 
@@ -131,16 +169,13 @@
             }
 
             // TODO 
-            // - remove all existing findings for that article, that where not found in this check
-            // - ignore a word
-            // - filter findings by ignore state
-            // - add article action buttons: show-findings
-            // - less CDN
+            // - remove all existing findings for that article, that where not found in this scan
 
             function state(){
                 return {
                     articles: [],
                     findings: [],
+                    showIgnored: false,
                     async init(){
                         console.log('init')
                         const urls = await articleUrls(sitemapUrl)
@@ -153,6 +188,9 @@
                             }
                         })
                         this.findings = loadFindings()
+                        this.showFindingsOfSelected()
+                        this.toggleIgnoreSelected()
+                        await createDictionary()
                     },
                     async scan(url){
                         console.log('scanning', url)
@@ -170,42 +208,81 @@
                             await this.scan(a.url)
                         })
                     },
-                    get nrOfSelected(){
+                    showFindingsOfSelected(){
+                        const selectedArticleUrls = this.articles.filter(a => a.selected).map(a => a.url)
+                        if(selectedArticleUrls.length === 0){
+                            this.findings.forEach(f => f.show = true)
+                        }else {
+                            this.findings.forEach(f => {
+                                f.show = f.refs.some(r => selectedArticleUrls.includes(r))
+                            })
+                        }
+                    },
+                    get nrOfSelectedArticles(){
                         return this.articles.filter(a => a.selected).length
+                    },
+                    get nrOfSelectedFindings(){
+                        return this.findings.filter(f => f.selected).length
+                    },
+                    get visibleFindings(){
+                        return this.findings.filter(f => f.show)
+                    },
+                    async toggleIgnoreSelected(){
+                        this.findings.filter(f => f.selected).forEach(async f => {
+                            if(f.ignore === true){
+                                await unIgnoreFinding(f)
+                            }else{
+                                await ignoreFinding(f)
+                            }
+                            storeFindings(this.findings)
+                        })
+                    },
+                    toggleShowIgnored(){
+                        this.findings.filter(f => {
+                            f.show = (this.showIgnored === false && f.ignore == false) || this.showIgnored === true
+                        })
+                        this.showIgnored = !this.showIgnored
                     }
                 }
             }
         </script>
-        <script defer src="https://cdn.tailwindcss.com"></script>
-        <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+        <script defer src="/tailwind.js"></script>
+        <script defer src="/alpine.js"></script>
     </head>
     <body x-data="state()" class="font-sans m-5 flex flex-row gap-4 text-gray-800 bg-amber-50">
         <article class="basis-2/3">
             <h1 class="text-xl">Articles</h1>
             <div class="py-3">
                 <button x-on:click.prevent="scanSelected()"
-                :class="{'!bg-slate-500 !cursor-not-allowed': nrOfSelected == 0}"
-                class="px-3 py-0.5 bg-green-600 text-white rounded shadow-sm hover:bg-green-700 hover:shadow-md focus:bg-green-700 focus:shadow-md focus:outline-none focus:ring-0 active:bg-green-800 active:shadow-md transition duration-150 ease-in-out">Scan</button>
+                    :class="{'!bg-slate-500 !cursor-not-allowed': nrOfSelectedArticles == 0}"
+                    class="px-3 py-0.5 bg-green-600 text-white rounded shadow-sm hover:bg-green-700 hover:shadow-md focus:bg-green-700 focus:shadow-md focus:outline-none focus:ring-0 active:bg-green-800 active:shadow-md transition duration-150 ease-in-out">Scan</button>
+                <button x-on:click.prevent="showFindingsOfSelected()"
+                    class="px-3 py-0.5 bg-green-600 text-white rounded shadow-sm hover:bg-green-700 hover:shadow-md focus:bg-green-700 focus:shadow-md focus:outline-none focus:ring-0 active:bg-green-800 active:shadow-md transition duration-150 ease-in-out">Filter Findings</button>
             </div>
             <table class="max-w-full">
                 <template x-for="article in articles">
-                    <tr class="odd:bg-slate-50 even:bg-white select-none" 
+                    <tr class="odd:bg-slate-50 even:bg-white select-none hover:cursor-pointer hover:bg-slate-100" 
                         :class="{ 'even:bg-blue-200': article.selected, 'odd:bg-blue-200': article.selected }"
                         x-on:click="article.selected = !article.selected">
-                        <td x-text="`${article.title}`" class="px-3 py-1.5 hover:cursor-pointer"></td>
+                        <td x-text="`${article.title}`" class="px-3 py-1.5"></td>
                     </tr>
                 </template>
             </table>
         </article>
         <article class="basis-1/3">
             <h1 class="text-xl">Findings</h1>
-            <div class="py-3">
-                <div x-text="`Total: ${findings.length}`"></div>
+            <div class="py-3 flex flex-row gap-4 justify-between">
+                <span x-text="`Total: ${findings.length}`" class=""></span>
+                <button x-on:click.prevent="toggleIgnoreSelected()"
+                    :class="{'!bg-slate-500 !cursor-not-allowed': nrOfSelectedFindings == 0}"
+                    class="px-3 py-0.5 bg-green-600 text-white rounded shadow-sm hover:bg-green-700 hover:shadow-md focus:bg-green-700 focus:shadow-md focus:outline-none focus:ring-0 active:bg-green-800 active:shadow-md transition duration-150 ease-in-out">Ignore</button>
+                <button x-on:click.prevent="toggleShowIgnored()"
+                    class="px-3 py-0.5 bg-green-600 text-white rounded shadow-sm hover:bg-green-700 hover:shadow-md focus:bg-green-700 focus:shadow-md focus:outline-none focus:ring-0 active:bg-green-800 active:shadow-md transition duration-150 ease-in-out">Toggle Show Ignored</button>                    
             </div>
             <table class="max-w-md">
                 <tbody>
-                    <template x-for="finding in findings">
-                        <tr class="odd:bg-slate-50 even:bg-white" 
+                    <template x-for="finding in visibleFindings">
+                        <tr class="odd:bg-slate-50 even:bg-white hover:cursor-pointer hover:bg-slate-100" 
                             :class="{ '!bg-blue-200': finding.selected }"
                             x-on:click="finding.selected = !finding.selected">
                             <td x-text="`${finding.word}`" class="px-3 py-1.5"></td>
