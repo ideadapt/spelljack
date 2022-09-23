@@ -8,7 +8,9 @@
         </script>
         <script>
             const sitemapUrl = 'https://www.digitale-gesellschaft.ch/sitemaps/post-sitemap1.xml'
-            const baseUrlRegex = /https:\/\/www.(digitale-gesellschaft|societe-numerique).ch\/\d\d\d\d\/\d\d\/\d\d\//
+            const urlToTitle = (url) => url
+                .replace(/https:\/\/www.(digitale-gesellschaft|societe-numerique).ch\/\d\d\d\d\/\d\d\/\d\d\//, '')
+                .replace(/\/$/, '')
         
             async function articleUrls(sitemapUrl){
                 const sitemapRes = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(sitemapUrl)}`)
@@ -81,6 +83,7 @@
                     return {
                         word: e.bad,
                         ignore: false,
+                        selected: false,
                         refs: [url]
                     }
                 })
@@ -130,16 +133,24 @@
             // - remove all existing findings for that article, that where not found in this check
             // - ignore a word
             // - filter findings by ignore state
-            // - add article action buttons: scan, show-findings
+            // - add article action buttons: show-findings
 
             function state(){
                 return {
-                    articleUrls: [],
+                    articles: [],
                     findings: [],
                     async init(){
                         console.log('init')
-                        this.articleUrls = await articleUrls(sitemapUrl)
-                        // editor.set({json: loadFindings()})
+                        const urls = await articleUrls(sitemapUrl)
+                        this.articles = urls.map(url => {
+                            return {
+                                url,
+                                title: urlToTitle(url),
+                                checks: [],
+                                selected: false
+                            }
+                        })
+                        this.findings = loadFindings()
                     },
                     async scan(url){
                         console.log('scanning', url)
@@ -150,8 +161,12 @@
                         
                         const allFindings = mergeFindings(findings, loadFindings())
                         storeFindings(allFindings)
-                        
-                        // editor.set({json: allFindings})
+                        this.findings = allFindings
+                    },
+                    async scanSelected(){
+                        this.articles.filter(a => a.selected).forEach(async a => {
+                            await this.scan(a.url)
+                        })
                     }
                 }
             }
@@ -162,17 +177,32 @@
     <body x-data="state()" class="font-sans m-5 grid grid-cols-2 gap-4">
         <article>
             <h1 class="text-xl">Articles</h1>
+            <button x-on:click.prevent="scanSelected()" class="border-2 bg-black text-white p-2">Scan</button>
             <table class="maxd">
-                <template x-for="articleUrl in articleUrls">
-                    <tr class="odd:bg-white even:bg-slate-50" x-on:click="scan(`${articleUrl}`)">
-                        <td x-text="`${articleUrl.replace(baseUrlRegex, '').replace(/\/$/, '')}`"></td>
+                <template x-for="article in articles">
+                    <tr class="odd:bg-white even:bg-slate-50" 
+                        :class="{ 'even:bg-blue-50': article.selected, 'odd:bg-blue-50': article.selected }"
+                        x-on:click="article.selected = !article.selected">
+                        <td x-text="`${article.title}`"></td>
                     </tr>
                 </template>
             </table>
         </article>
         <article>
             <h1 class="text-xl">Findings</h1>
-            <div id="jsoneditor"></div>
+            <div x-text="`${findings.length}`"></div>
+            <table class="maxd">
+                <tbody>
+                    <template x-for="finding in findings">
+                        <tr class="odd:bg-white even:bg-slate-50" 
+                            :class="{ 'even:bg-blue-50': finding.selected, 'odd:bg-blue-50': finding.selected }"
+                            x-on:click="finding.selected = !finding.selected">
+                            <td x-text="`${finding.word}`"></td>
+                            <td x-text="`${finding.ignore}`"></td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
         </article>
     </body>
 </html>
