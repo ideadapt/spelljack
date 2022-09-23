@@ -190,6 +190,7 @@
                         this.findings = loadFindings()
                         this.showFindingsOfSelected()
                         this.toggleIgnoreSelected()
+                        this.toggleShowIgnored()
                         await createDictionary()
                     },
                     async scan(url){
@@ -275,7 +276,7 @@
                 <span x-text="`Total: ${findings.length}`" class=""></span>
                 <button x-on:click.prevent="toggleIgnoreSelected()"
                     :class="{'!bg-slate-500 !cursor-not-allowed': nrOfSelectedFindings == 0}"
-                    class="px-3 py-0.5 bg-green-600 text-white rounded shadow-sm hover:bg-green-700 hover:shadow-md focus:bg-green-700 focus:shadow-md focus:outline-none focus:ring-0 active:bg-green-800 active:shadow-md transition duration-150 ease-in-out">Ignore</button>
+                    class="px-3 py-0.5 bg-green-600 text-white rounded shadow-sm hover:bg-green-700 hover:shadow-md focus:bg-green-700 focus:shadow-md focus:outline-none focus:ring-0 active:bg-green-800 active:shadow-md transition duration-150 ease-in-out">Toggle Ignore</button>
                 <button x-on:click.prevent="toggleShowIgnored()"
                     class="px-3 py-0.5 bg-green-600 text-white rounded shadow-sm hover:bg-green-700 hover:shadow-md focus:bg-green-700 focus:shadow-md focus:outline-none focus:ring-0 active:bg-green-800 active:shadow-md transition duration-150 ease-in-out">Toggle Show Ignored</button>                    
             </div>
