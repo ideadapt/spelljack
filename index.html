@@ -32,7 +32,7 @@
                     const xmlDoc = parser.parseFromString(xml, "text/html")
                     return {
                         title: xmlDoc.querySelector(".main .entry-title").innerText,
-                        text: xmlDoc.querySelector(".main .entry-content").innerText,
+                        html: xmlDoc.querySelector(".main .entry-content").innerHTML,
                         date: xmlDoc.querySelector(".main .entry-meta time").getAttribute('datetime')
                     }
                 }else{
@@ -40,8 +40,16 @@
                 }
             }
 
+            function decodeHTMLEntities(text) {
+                const textArea = document.createElement('textarea');
+                textArea.innerHTML = text;
+                return textArea.value;
+            }
+
             function normalizeContent(articleContent){
-                return articleContent.split(/[ \n]+/g).join(' ')
+                const noHtml = articleContent.replaceAll(/<[^>]*>/g, " ")
+                const noNewLines = noHtml.split(/\n/g).join(' ')
+                return decodeHTMLEntities(noNewLines)
             }
 
             async function checkSpelling(text){
@@ -170,6 +178,8 @@
 
             // TODO 
             // - remove all existing findings for that article, that where not found in this scan
+            // - introduce distinct filter states and apply them on each update of any other filter
+            // - show last scan date for each article
 
             function state(){
                 return {
@@ -184,6 +194,7 @@
                                 url,
                                 title: urlToTitle(url),
                                 checks: [],
+                                show: true,
                                 selected: false
                             }
                         })
@@ -196,17 +207,17 @@
                     async scan(url){
                         console.log('scanning', url)
                         const content = await extractArticleContent(url)
-                        const errors = await checkSpelling(normalizeContent(content.text))
+                        const errors = await checkSpelling(normalizeContent(content.html))
                         const findings = mapToFindings(errors, url)
                         console.log('findings', findings)
                         
-                        const allFindings = mergeFindings(findings, loadFindings())
-                        storeFindings(allFindings)
-                        this.findings = allFindings
+                        return findings
                     },
                     async scanSelected(){
                         this.articles.filter(a => a.selected).forEach(async a => {
-                            await this.scan(a.url)
+                            const findings = await this.scan(a.url)
+                            a.checks.push({ date: new Date()}) // TODO articles not stored yet, check date has no value yet
+                            this.findings = mergeFindings(findings, loadFindings())
                         })
                     },
                     showFindingsOfSelected(){
@@ -219,6 +230,20 @@
                             })
                         }
                     },
+                    showArticlesOfSelected(){
+                        const selectedFindings = this.findings.filter(f => f.selected)
+                        if(selectedFindings.length !== 1){
+                            this.articles.forEach(a => a.show = true)
+                        }else {
+                            selectedFindings.forEach(f => {
+                                f.refs.forEach(urlToSelect => {
+                                    this.articles.forEach(a => {
+                                        a.show = a.url === urlToSelect
+                                    })
+                                })
+                            })
+                        }
+                    },
                     get nrOfSelectedArticles(){
                         return this.articles.filter(a => a.selected).length
                     },
@@ -227,6 +252,9 @@
                     },
                     get visibleFindings(){
                         return this.findings.filter(f => f.show)
+                    },
+                    get visibleArticles(){
+                        return this.articles.filter(a => a.show)
                     },
                     async toggleIgnoreSelected(){
                         this.findings.filter(f => f.selected).forEach(async f => {
@@ -261,11 +289,12 @@
                     class="px-3 py-0.5 bg-green-600 text-white rounded shadow-sm hover:bg-green-700 hover:shadow-md focus:bg-green-700 focus:shadow-md focus:outline-none focus:ring-0 active:bg-green-800 active:shadow-md transition duration-150 ease-in-out">Filter Findings</button>
             </div>
             <table class="max-w-full">
-                <template x-for="article in articles">
+                <template x-for="article in visibleArticles">
                     <tr class="odd:bg-slate-50 even:bg-white select-none hover:cursor-pointer hover:bg-slate-100" 
                         :class="{ 'even:bg-blue-200': article.selected, 'odd:bg-blue-200': article.selected }"
                         x-on:click="article.selected = !article.selected">
                         <td x-text="`${article.title}`" class="px-3 py-1.5"></td>
+                        <td><a :href="article.url" target="_blank" class="px-3 hover:text-blue-700 text-blue-500">o</a></td>
                     </tr>
                 </template>
             </table>
@@ -275,10 +304,12 @@
             <div class="py-3 flex flex-row gap-4 justify-between">
                 <span x-text="`Total: ${findings.length}`" class=""></span>
                 <button x-on:click.prevent="toggleIgnoreSelected()"
-                    :class="{'!bg-slate-500 !cursor-not-allowed': nrOfSelectedFindings == 0}"
+                    :class="{'!bg-slate-500 !cursor-not-allowed': nrOfSelectedFindings === 0}"
                     class="px-3 py-0.5 bg-green-600 text-white rounded shadow-sm hover:bg-green-700 hover:shadow-md focus:bg-green-700 focus:shadow-md focus:outline-none focus:ring-0 active:bg-green-800 active:shadow-md transition duration-150 ease-in-out">Toggle Ignore</button>
                 <button x-on:click.prevent="toggleShowIgnored()"
                     class="px-3 py-0.5 bg-green-600 text-white rounded shadow-sm hover:bg-green-700 hover:shadow-md focus:bg-green-700 focus:shadow-md focus:outline-none focus:ring-0 active:bg-green-800 active:shadow-md transition duration-150 ease-in-out">Toggle Show Ignored</button>                    
+                <button x-on:click.prevent="showArticlesOfSelected()"
+                    class="px-3 py-0.5 bg-green-600 text-white rounded shadow-sm hover:bg-green-700 hover:shadow-md focus:bg-green-700 focus:shadow-md focus:outline-none focus:ring-0 active:bg-green-800 active:shadow-md transition duration-150 ease-in-out">Filter Articles</button>                    
             </div>
             <table class="max-w-md">
                 <tbody>
