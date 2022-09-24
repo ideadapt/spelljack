@@ -9,7 +9,7 @@
         </script>
         <script>
             const sitemapUrl = 'https://www.digitale-gesellschaft.ch/sitemaps/post-sitemap1.xml'
-            const urlToTitle = (url) => url
+            const urlToTitle = url => url
                 .replace(/https:\/\/www.(digitale-gesellschaft|societe-numerique).ch\/\d\d\d\d\/\d\d\/\d\d\//, '')
                 .replace(/\/$/, '')
         
@@ -136,37 +136,39 @@
 
             const storeName = 'spellcheck'
             function loadState(){
-                const item = localStorage.getItem(storeName)
-                if(!item){
-                    const newItem = {
+                const state = localStorage.getItem(storeName)
+                if(!state){
+                    const newState = {
                         findings: []
                     }
-                    localStorage.setItem(storeName, JSON.stringify(newItem))
-                    return newItem
+                    localStorage.setItem(storeName, JSON.stringify(newState))
+                    return newState
                 }
-                return JSON.parse(item)
+                return JSON.parse(state)
             }
             function storeState(state){
                 localStorage.setItem(storeName, JSON.stringify(state))
             }
 
             function storeFindings(findings){
-                const existing = loadState()
-                existing.findings = findings.map(f => ({...f, selected: false}))
-                storeState(existing)
+                const state = loadState()
+                state.findings = findings.map(f => ({...f, selected: false}))
+                storeState(state)
             }
 
             function loadFindings(){
                 return loadState().findings
             }
 
+            /**
+             * add finding-url to existing finding if same word
+             * remove all existing finding refs not present in findings
+            */
             function mergeFindings(findings, existingFindings){
                 const newFindings = new Set(findings)
                 for(const newFinding of newFindings){
                     const scannedRef = newFinding.refs[0]
-                    existingFindings.forEach(ef => ef.refs = ef.refs.filter(r => r !== scannedRef))
-                    existingFindings = existingFindings.filter(ef => ef.refs.length > 0)
-
+                    
                     const existing = existingFindings.find(ef => ef.word === newFinding.word)
                     if(existing){
                         // TODO use Set
@@ -175,6 +177,12 @@
                         newFindings.delete(newFinding)
                     }
                 }
+
+                existingFindings = existingFindings.filter(ef => 
+                    ef.refs.some(r => 
+                        findings.some(f => ef.word === f.word && f.refs[0] === r))
+                )
+                        
                 existingFindings.push(...(newFindings.values()))
                 existingFindings.sort((a, b) => a.word.localeCompare(b.word))
                 return existingFindings
@@ -202,8 +210,7 @@
                             }
                         })
                         this.findings = loadFindings()
-                        this.toggleIgnoreSelected()
-                        await createDictionary()
+                        createDictionary()
                     },
                     async scan(url){
                         console.log('scanning', url)
@@ -218,7 +225,18 @@
                         this.articles.filter(a => a.selected).forEach(async a => {
                             const findings = await this.scan(a.url)
                             a.checks.push({ date: new Date()}) // TODO articles not stored yet, check date has no value yet
-                            this.findings = mergeFindings(findings, loadFindings())
+                            this.findings = mergeFindings(findings, this.findings)
+                        })
+                        storeFindings(this.findings)
+                    },
+                    async toggleIgnoreSelected(){
+                        this.findings.filter(f => f.selected).forEach(async f => {
+                            if(f.ignore){
+                                await unIgnoreFinding(f)
+                            }else{
+                                await ignoreFinding(f)
+                            }
+                            storeFindings(this.findings)
                         })
                     },
                     get nrOfSelectedArticles(){
@@ -232,37 +250,28 @@
 
                         return this.findings.filter(f => 
                             (this.showIgnored || !f.ignore) &&
-                            ((this.filterFindingsBySelectedArticles && (selectedArticleUrls.length === 0 || f.refs.some(r => selectedArticleUrls.includes(r))))
-                                || !this.filterFindingsBySelectedArticles)
+                            ((this.filterFindingsBySelectedArticles && (selectedArticleUrls.length === 0 || 
+                                f.refs.some(r => selectedArticleUrls.includes(r))
+                            ))
+                            || !this.filterFindingsBySelectedArticles)
                         )
                     },
                     get filteredArticles(){
                         const selectedFindings = this.findings.filter(f => f.selected)
                         return this.articles.filter(a => 
                             ((this.filterArticlesBySelectedFindings && (selectedFindings.length === 0 || 
-                                selectedFindings.some(f => 
-                                    f.refs.some(urlToSelect => a.url === urlToSelect)
-                                )
+                                selectedFindings.some(f => f.refs.some(urlToSelect => a.url === urlToSelect))
                             ))
-                                || !this.filterArticlesBySelectedFindings)
+                            || !this.filterArticlesBySelectedFindings)
                         )
                     },
-                    async toggleIgnoreSelected(){
-                        this.findings.filter(f => f.selected).forEach(async f => {
-                            if(f.ignore){
-                                await unIgnoreFinding(f)
-                            }else{
-                                await ignoreFinding(f)
-                            }
-                            storeFindings(this.findings)
-                        })
-                    }
+                    
                 }
             }
         </script>
         <script defer src="../node_modules/alpinejs/dist/cdn.js"></script>
     </head>
-    <body x-data="state()" class="font-sans m-5 flex flex-row gap-10 text-gray-800 bg-amber-50">
+    <body x-data="state()" class="font-sans m-5 container mx-auto flex flex-row gap-10 text-gray-800 bg-amber-50">
         <article class="basis-2/3">
             <h1 class="text-xl">Articles</h1>
             <div class="py-3 flex gap-4">
@@ -279,7 +288,7 @@
                     <tr class="odd:bg-slate-50 even:bg-white select-none hover:cursor-pointer hover:bg-slate-100" 
                         :class="{ '!bg-blue-200': article.selected }"
                         x-on:click="article.selected = !article.selected">
-                        <td x-text="`${article.title}`" class="px-3 py-1.5"></td>
+                        <td x-text="`${article.title}`" class="px-3 py-1.5 max-w-prose truncate"></td>
                         <td><a :href="article.url" target="_blank" class="hover:stroke-blue-700 stroke-slate-500">
                             <svg xmlns="http://www.w3.org/2000/svg" style="transform: scale(0.75)" width="20" height="20"><path fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11v6a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6M13 1h6v6M8 12 19 1"/></svg>
                         </a></td>
@@ -290,19 +299,18 @@
         <article class="basis-1/3">
             <h1 class="text-xl">Findings</h1>
             <div class="py-3 flex flex-row gap-4 justify-between">
-                <span x-text="`Total: ${findings.length}`"></span>
                 <button x-on:click.prevent="toggleIgnoreSelected()" :class="{'!bg-slate-400 !cursor-not-allowed': nrOfSelectedFindings === 0}">Toggle Ignore</button>
                 
                 <label for="show-ignored-toggle" class="inline-flex relative items-center cursor-pointer">
                     <input type="checkbox" value="" id="show-ignored-toggle" x-model="showIgnored" class="sr-only peer">
                     <div class="w-11 h-6 bg-gray-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-                    <span class="ml-2 text-sm font-medium text-gray-900">Show Ignored</span>
+                    <span class="ml-2 whitespace-nowrap text-sm font-medium text-gray-900">Show Ignored</span>
                 </label>
 
                 <label for="article-filter-toggle" class="inline-flex relative items-center cursor-pointer">
                     <input type="checkbox" value="" id="article-filter-toggle" x-model="filterArticlesBySelectedFindings" class="sr-only peer">
                     <div class="w-11 h-6 bg-gray-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-                    <span class="ml-2 text-sm font-medium text-gray-900">Filter Articles</span>
+                    <span class="ml-2 whitespace-nowrap text-sm font-medium text-gray-900">Filter Articles</span>
                 </label>
             </div>
             <table class="max-w-md">
