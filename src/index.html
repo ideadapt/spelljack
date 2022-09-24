@@ -305,7 +305,7 @@
 
         <article class="basis-2/3">
             <h1 class="text-xl">Articles</h1>
-            <div class="py-3 flex gap-4">
+            <div class="py-3 flex gap-4 items-center">
                 <button x-on:click.prevent="scanSelected()" :class="{'!bg-slate-400 !cursor-not-allowed': nrOfSelectedArticles == 0}">Scan</button>
 
                 <x-toggle-button text="Filter finding" x-model="filterFindingsBySelectedArticles"></x-toggle-button>
@@ -325,7 +325,7 @@
         </article>
         <article class="basis-1/3">
             <h1 class="text-xl">Findings</h1>
-            <div class="py-3 flex flex-row gap-4 justify-between">
+            <div class="py-3 flex flex-row gap-4 justify-between items-center">
                 <button x-on:click.prevent="toggleIgnoreSelected()" :class="{'!bg-slate-400 !cursor-not-allowed': nrOfSelectedFindings === 0}">Toggle Ignore</button>
                 
                 <x-toggle-button text="Show ignored" x-model="showIgnored"></x-toggle-button>
