@@ -129,7 +129,6 @@
                         word: e.bad,
                         ignore: false,
                         selected: false,
-                        show: true,
                         refs: [url]
                     }
                 })
@@ -182,7 +181,6 @@
             }
 
             // TODO 
-            // - introduce distinct filter states and apply them on each update of any other filter
             // - show last scan date for each article
 
             function state(){
@@ -190,6 +188,8 @@
                     articles: [],
                     findings: [],
                     showIgnored: false,
+                    filterFindingsBySelectedArticles: false,
+                    filterArticlesBySelectedFindings: false,
                     async init(){
                         console.log('init')
                         const urls = await articleUrls(sitemapUrl)
@@ -198,14 +198,11 @@
                                 url,
                                 title: urlToTitle(url),
                                 checks: [],
-                                show: true,
                                 selected: false
                             }
                         })
                         this.findings = loadFindings()
-                        this.showFindingsOfSelected()
                         this.toggleIgnoreSelected()
-                        this.toggleShowIgnored()
                         await createDictionary()
                     },
                     async scan(url){
@@ -224,57 +221,41 @@
                             this.findings = mergeFindings(findings, loadFindings())
                         })
                     },
-                    showFindingsOfSelected(){
-                        const selectedArticleUrls = this.articles.filter(a => a.selected).map(a => a.url)
-                        if(selectedArticleUrls.length === 0){
-                            this.findings.forEach(f => f.show = true)
-                        }else {
-                            this.findings.forEach(f => {
-                                f.show = f.refs.some(r => selectedArticleUrls.includes(r))
-                            })
-                        }
-                    },
-                    showArticlesOfSelected(){
-                        const selectedFindings = this.findings.filter(f => f.selected)
-                        if(selectedFindings.length !== 1){
-                            this.articles.forEach(a => a.show = true)
-                        }else {
-                            selectedFindings.forEach(f => {
-                                f.refs.forEach(urlToSelect => {
-                                    this.articles.forEach(a => {
-                                        a.show = a.url === urlToSelect
-                                    })
-                                })
-                            })
-                        }
-                    },
                     get nrOfSelectedArticles(){
                         return this.articles.filter(a => a.selected).length
                     },
                     get nrOfSelectedFindings(){
                         return this.findings.filter(f => f.selected).length
                     },
-                    get visibleFindings(){
-                        return this.findings.filter(f => f.show)
+                    get filteredFindings(){
+                        const selectedArticleUrls = this.articles.filter(a => a.selected).map(a => a.url)
+
+                        return this.findings.filter(f => 
+                            (this.showIgnored || !f.ignore) &&
+                            ((this.filterFindingsBySelectedArticles && (selectedArticleUrls.length === 0 || f.refs.some(r => selectedArticleUrls.includes(r))))
+                                || !this.filterFindingsBySelectedArticles)
+                        )
                     },
-                    get visibleArticles(){
-                        return this.articles.filter(a => a.show)
+                    get filteredArticles(){
+                        const selectedFindings = this.findings.filter(f => f.selected)
+                        return this.articles.filter(a => 
+                            ((this.filterArticlesBySelectedFindings && (selectedFindings.length === 0 || 
+                                selectedFindings.some(f => 
+                                    f.refs.some(urlToSelect => a.url === urlToSelect)
+                                )
+                            ))
+                                || !this.filterArticlesBySelectedFindings)
+                        )
                     },
                     async toggleIgnoreSelected(){
                         this.findings.filter(f => f.selected).forEach(async f => {
-                            if(f.ignore === true){
+                            if(f.ignore){
                                 await unIgnoreFinding(f)
                             }else{
                                 await ignoreFinding(f)
                             }
                             storeFindings(this.findings)
                         })
-                    },
-                    toggleShowIgnored(){
-                        this.findings.filter(f => {
-                            f.show = (this.showIgnored === false && f.ignore == false) || this.showIgnored === true
-                        })
-                        this.showIgnored = !this.showIgnored
                     }
                 }
             }
@@ -286,12 +267,12 @@
             <h1 class="text-xl">Articles</h1>
             <div class="py-3">
                 <button x-on:click.prevent="scanSelected()" :class="{'!bg-slate-500 !cursor-not-allowed': nrOfSelectedArticles == 0}">Scan</button>
-                <button x-on:click.prevent="showFindingsOfSelected()">Filter Findings</button>
+                <button x-on:click.prevent="filterFindingsBySelectedArticles = !filterFindingsBySelectedArticles">Filter Findings</button>
             </div>
             <table class="max-w-full">
-                <template x-for="article in visibleArticles">
+                <template x-for="article in filteredArticles">
                     <tr class="odd:bg-slate-50 even:bg-white select-none hover:cursor-pointer hover:bg-slate-100" 
-                        :class="{ 'even:bg-blue-200': article.selected, 'odd:bg-blue-200': article.selected }"
+                        :class="{ '!bg-blue-200': article.selected }"
                         x-on:click="article.selected = !article.selected">
                         <td x-text="`${article.title}`" class="px-3 py-1.5"></td>
                         <td><a :href="article.url" target="_blank" class="px-3 hover:text-blue-700 text-blue-500">o</a></td>
@@ -304,14 +285,14 @@
             <div class="py-3 flex flex-row gap-4 justify-between">
                 <span x-text="`Total: ${findings.length}`"></span>
                 <button x-on:click.prevent="toggleIgnoreSelected()" :class="{'!bg-slate-500 !cursor-not-allowed': nrOfSelectedFindings === 0}">Toggle Ignore</button>
-                <button x-on:click.prevent="toggleShowIgnored()">Toggle Show Ignored</button>                    
-                <button x-on:click.prevent="showArticlesOfSelected()">Filter Articles</button>                    
+                <button x-on:click.prevent="showIgnored = !showIgnored">Toggle Show Ignored</button>                    
+                <button x-on:click.prevent="filterArticlesBySelectedFindings = !filterArticlesBySelectedFindings">Filter Articles</button>                    
             </div>
             <table class="max-w-md">
                 <tbody>
-                    <template x-for="finding in visibleFindings">
+                    <template x-for="finding in filteredFindings">
                         <tr class="odd:bg-slate-50 even:bg-white hover:cursor-pointer hover:bg-slate-100" 
-                            :class="{ '!bg-blue-200': finding.selected }"
+                            :class="{ '!bg-blue-200 !hover:bg-blue-700': finding.selected }"
                             x-on:click="finding.selected = !finding.selected">
                             <td x-text="`${finding.word}`" class="px-3 py-1.5"></td>
                             <td x-text="`${finding.ignore}`" class="px-3 py-1.5"></td>
