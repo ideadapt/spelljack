@@ -262,7 +262,7 @@
         </script>
         <script defer src="../node_modules/alpinejs/dist/cdn.js"></script>
     </head>
-    <body x-data="state()" class="font-sans m-5 flex flex-row gap-4 text-gray-800 bg-amber-50">
+    <body x-data="state()" class="font-sans m-5 flex flex-row gap-10 text-gray-800 bg-amber-50">
         <article class="basis-2/3">
             <h1 class="text-xl">Articles</h1>
             <div class="py-3 flex gap-4">
@@ -280,7 +280,9 @@
                         :class="{ '!bg-blue-200': article.selected }"
                         x-on:click="article.selected = !article.selected">
                         <td x-text="`${article.title}`" class="px-3 py-1.5"></td>
-                        <td><a :href="article.url" target="_blank" class="px-3 hover:text-blue-700 text-blue-500">o</a></td>
+                        <td><a :href="article.url" target="_blank" class="hover:stroke-blue-700 stroke-slate-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" style="transform: scale(0.75)" width="20" height="20"><path fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11v6a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6M13 1h6v6M8 12 19 1"/></svg>
+                        </a></td>
                     </tr>
                 </template>
             </table>
