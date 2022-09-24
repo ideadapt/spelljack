@@ -18,10 +18,8 @@ export function mergeFindings(findings, existingFindings){
     }
 
     // TODO still full of bugs => unit test with mocha
-    existingFindings = existingFindings.filter(ef => 
-        ef.refs.some(r => 
-            findings.some(f => ef.word === f.word && f.refs[0] === r))
-    )
+    // remove existingFinding if: existingFindingsForUrl not in newFindings
+   
             
     existingFindings.push(...(newFindings.values()))
     existingFindings.sort((a, b) => a.word.localeCompare(b.word))
