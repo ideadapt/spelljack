@@ -266,11 +266,11 @@
         <article class="basis-2/3">
             <h1 class="text-xl">Articles</h1>
             <div class="py-3 flex gap-4">
-                <button x-on:click.prevent="scanSelected()" :class="{'!bg-slate-500 !cursor-not-allowed': nrOfSelectedArticles == 0}">Scan</button>
+                <button x-on:click.prevent="scanSelected()" :class="{'!bg-slate-400 !cursor-not-allowed': nrOfSelectedArticles == 0}">Scan</button>
 
                 <label for="findings-filter-toggle" class="inline-flex relative items-center cursor-pointer">
                     <input type="checkbox" value="" id="findings-filter-toggle" x-model="filterFindingsBySelectedArticles" class="sr-only peer">
-                    <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                    <div class="w-11 h-6 bg-gray-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
                     <span class="ml-2 text-sm font-medium text-gray-900">Filter Findings</span>
                 </label>
             </div>
@@ -289,17 +289,17 @@
             <h1 class="text-xl">Findings</h1>
             <div class="py-3 flex flex-row gap-4 justify-between">
                 <span x-text="`Total: ${findings.length}`"></span>
-                <button x-on:click.prevent="toggleIgnoreSelected()" :class="{'!bg-slate-500 !cursor-not-allowed': nrOfSelectedFindings === 0}">Toggle Ignore</button>
+                <button x-on:click.prevent="toggleIgnoreSelected()" :class="{'!bg-slate-400 !cursor-not-allowed': nrOfSelectedFindings === 0}">Toggle Ignore</button>
                 
                 <label for="show-ignored-toggle" class="inline-flex relative items-center cursor-pointer">
                     <input type="checkbox" value="" id="show-ignored-toggle" x-model="showIgnored" class="sr-only peer">
-                    <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                    <div class="w-11 h-6 bg-gray-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
                     <span class="ml-2 text-sm font-medium text-gray-900">Show Ignored</span>
                 </label>
 
                 <label for="article-filter-toggle" class="inline-flex relative items-center cursor-pointer">
                     <input type="checkbox" value="" id="article-filter-toggle" x-model="filterArticlesBySelectedFindings" class="sr-only peer">
-                    <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                    <div class="w-11 h-6 bg-gray-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
                     <span class="ml-2 text-sm font-medium text-gray-900">Filter Articles</span>
                 </label>
             </div>
@@ -310,7 +310,10 @@
                             :class="{ '!bg-blue-200 !hover:bg-blue-700': finding.selected }"
                             x-on:click="finding.selected = !finding.selected">
                             <td x-text="`${finding.word}`" class="px-3 py-1.5"></td>
-                            <td x-text="`${finding.ignore}`" class="px-3 py-1.5"></td>
+                            <td class="px-3 py-1.5">
+                                <svg x-show="!finding.ignore" xmlns="http://www.w3.org/2000/svg" class="fill-amber-500" viewBox="0 0 24 24" width="20" height="20"><g data-name="Layer 2"><path d="M22.56 16.3 14.89 3.58a3.43 3.43 0 0 0-5.78 0L1.44 16.3a3 3 0 0 0-.05 3A3.37 3.37 0 0 0 4.33 21h15.34a3.37 3.37 0 0 0 2.94-1.66 3 3 0 0 0-.05-3.04zM12 17a1 1 0 1 1 1-1 1 1 0 0 1-1 1zm1-4a1 1 0 0 1-2 0V9a1 1 0 0 1 2 0z" data-name="alert-triangle"/></g></svg>
+                                <svg x-show="finding.ignore" xmlns="http://www.w3.org/2000/svg" class="fill-green-500" viewBox="0 0 64 64" width="20" height="20"><path d="M20.27,52.78a3,3,0,0,0,4.24,0L61.1,16.19A3,3,0,0,0,56.86,12L22.39,46.42,7,31.07A3,3,0,1,0,2.8,35.31Z"/></svg>
+                            </td>
                         </tr>
                     </template>
                 </tbody>
