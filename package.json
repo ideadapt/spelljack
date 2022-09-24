@@ -4,7 +4,9 @@
   "description": "",
   "main": "config.example.js",
   "scripts": {
-    "dev": "npx parcel src/index.html --open"
+    "dev": "npx parcel src/index.html --open",
+    "test": "npx mocha test/*.mjs",
+    "test:watch": "nodemon --watch test --watch src --exec mocha test/*.mjs"
   },
   "repository": {
     "type": "git",
@@ -22,6 +24,8 @@
     "tailwindcss": "^3.1.8"
   },
   "dependencies": {
-    "alpinejs": "^3.10.3"
+    "alpinejs": "^3.10.3",
+    "mocha": "^10.0.0",
+    "nodemon": "^2.0.20"
   }
 }

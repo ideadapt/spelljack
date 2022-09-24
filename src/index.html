@@ -3,15 +3,18 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link href="./index.css" rel="stylesheet">
+        
         <script type="module">
             import config from '/config.js'
-            window.spelljack = config
-        </script>
-        <script>
+            import {mergeFindings} from './module.mjs'
+            import Alpine from 'alpinejs'    
+            window.Alpine = Alpine     
+
             const sitemapUrl = 'https://www.digitale-gesellschaft.ch/sitemaps/post-sitemap1.xml'
             const urlToTitle = url => url
                 .replace(/https:\/\/www.(digitale-gesellschaft|societe-numerique).ch\/\d\d\d\d\/\d\d\/\d\d\//, '')
                 .replace(/\/$/, '')
+                .replaceAll('-', ' ')
         
             async function articleUrls(sitemapUrl){
                 const sitemapRes = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(sitemapUrl)}&rand=${Math.random()}`)
@@ -54,7 +57,7 @@
             }
 
             async function checkSpelling(text){
-                const key = window.spelljack.key
+                const key = config.key
                 const url = `https://api.textgears.com/spelling`
                 const spellRes = await fetch(url, {
                     method: 'POST',
@@ -76,7 +79,7 @@
             }
 
             async function createDictionary(name){
-                const response = await fetch(`https://api.textgears.com/custom/createdictionary?key=${window.spelljack.key}&id=${window.spelljack.dict_key}&title=${window.spelljack.dict_title}`,
+                const response = await fetch(`https://api.textgears.com/custom/createdictionary?key=${config.key}&id=${config.dict_key}&title=${config.dict_title}`,
                     {
                         method: 'POST'
                     }
@@ -87,7 +90,7 @@
             }
 
             async function ignoreFinding(finding){
-                const response = await fetch(`https://api.textgears.com/custom/addexception?key=${window.spelljack.key}&dictionary_id=${window.spelljack.dict_key}&type=2&lang=de-CH&text=${finding.word}`, 
+                const response = await fetch(`https://api.textgears.com/custom/addexception?key=${config.key}&dictionary_id=${config.dict_key}&type=2&lang=de-CH&text=${finding.word}`, 
                 {
                     method: 'POST'
                 })
@@ -100,7 +103,7 @@
                 
             }
             async function unIgnoreFinding(finding){
-                const response = await fetch(`https://api.textgears.com/custom/deleteexception?key=${window.spelljack.key}&id=${finding.exceptionId}`, 
+                const response = await fetch(`https://api.textgears.com/custom/deleteexception?key=${config.key}&id=${finding.exceptionId}`, 
                 {
                     method: 'POST'
                 })
@@ -160,39 +163,11 @@
                 return loadState().findings
             }
 
-            /**
-             * add finding-url to existing finding if same word
-             * remove all existing finding refs not present in findings
-            */
-            function mergeFindings(findings, existingFindings){
-                const newFindings = new Set(findings)
-                for(const newFinding of newFindings){
-                    const scannedRef = newFinding.refs[0]
-
-                    const existing = existingFindings.find(ef => ef.word === newFinding.word)
-                    if(existing){
-                        // TODO use Set
-                        existing.refs.push(scannedRef)
-                        existing.refs = [...new Set(existing.refs)]
-                        newFindings.delete(newFinding)
-                    }
-                }
-
-                existingFindings = existingFindings.filter(ef => 
-                    ef.refs.some(r => 
-                        findings.some(f => ef.word === f.word && f.refs[0] === r))
-                )
-                        
-                existingFindings.push(...(newFindings.values()))
-                existingFindings.sort((a, b) => a.word.localeCompare(b.word))
-                return existingFindings
-            }
-
             // TODO 
             // - show last scan date for each article
             // - store remote npm i -S simple-github-gist-api
 
-            function state(){
+            window.spelljackApp = function(){
                 return {
                     articles: [],
                     findings: [],
@@ -293,7 +268,6 @@
                 })
             })
         </script>
-        <script defer src="../node_modules/alpinejs/dist/cdn.js"></script>
         <template x-component="toggle-button">
             <div x-data="{ ...$el.parentElement.data(), id: Math.floor(Math.random()*10000) }">
                 <label :for="`${id}`" class="inline-flex relative items-center cursor-pointer">
@@ -304,7 +278,7 @@
             </div>
         </template>
     </head> 
-    <body x-data="state()" class="font-sans m-5 container mx-auto text-gray-800 bg-amber-50">
+    <body x-data="spelljackApp()" class="font-sans m-5 container mx-auto text-gray-800 bg-amber-50">
         <div class="flex flex-row gap-10">
             <article class="basis-2/3">
                 <h1 class="text-xl">Articles</h1>
@@ -323,8 +297,9 @@
                             <tr class="odd:bg-slate-50 even:bg-white select-none hover:cursor-pointer hover:bg-slate-100" 
                                 :class="{ '!bg-amber-200': article.selected }"
                                 x-on:click="article.selected = !article.selected">
-                                <td x-text="`${article.title}`" class="px-3 py-1.5 max-w-prose truncate"></td>
-                                <td class="p-2"><a :href="article.url" target="_blank" class="hover:stroke-amber-700 stroke-slate-500">
+                                <td x-text="`${article.title}`"
+                                    class="px-3 py-3 max-w-prose truncate"></td>
+                                <td class="p-3"><a :href="article.url" target="_blank" class="hover:stroke-amber-700 stroke-slate-500">
                                     <svg xmlns="http://www.w3.org/2000/svg" style="transform: scale(0.75)" width="20" height="20"><path fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11v6a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6M13 1h6v6M8 12 19 1"/></svg>
                                 </a></td>
                             </tr>
@@ -373,5 +348,8 @@
                 Code at <a href="https://github.com/ideadapt/spelljack">ideadapts spelljack repo</a>
             </p>
         </footer>
+        <script defer>   
+            Alpine.start()
+        </script>
     </body>
 </html>
