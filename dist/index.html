@@ -587,7 +587,7 @@ exports.export = function(dest, destName, get) {
         <script>const sitemapUrl = "https://www.digitale-gesellschaft.ch/sitemaps/post-sitemap1.xml";
 const urlToTitle = (url)=>url.replace(/https:\/\/www.(digitale-gesellschaft|societe-numerique).ch\/\d\d\d\d\/\d\d\/\d\d\//, "").replace(/\/$/, "");
 async function articleUrls(sitemapUrl) {
-    const sitemapRes = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(sitemapUrl)}`);
+    const sitemapRes = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(sitemapUrl)}&rand=${Math.random()}`);
     if (sitemapRes.ok) {
         const xml = JSON.parse(await sitemapRes.text()).contents;
         const parser = new DOMParser();
@@ -598,7 +598,7 @@ async function articleUrls(sitemapUrl) {
     } else throw sitemapRes;
 }
 async function extractArticleContent(articleUrl) {
-    const articleRes = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(articleUrl)}`);
+    const articleRes = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(articleUrl)}&rand=${Math.random()}`);
     if (articleRes.ok) {
         const xml = JSON.parse(await articleRes.text()).contents;
         const parser = new DOMParser();
@@ -719,10 +719,13 @@ function loadFindings() {
 function mergeFindings(findings, existingFindings) {
     const newFindings = new Set(findings);
     for (const newFinding of newFindings){
+        const scannedRef = newFinding.refs[0];
+        existingFindings.forEach((ef)=>ef.refs = ef.refs.filter((r)=>r !== scannedRef));
+        existingFindings = existingFindings.filter((ef)=>ef.refs.length > 0);
         const existing = existingFindings.find((ef)=>ef.word === newFinding.word);
         if (existing) {
             // TODO use Set
-            existing.refs.push(newFinding.refs[0]);
+            existing.refs.push(scannedRef);
             existing.refs = [
                 ...new Set(existing.refs)
             ];
@@ -734,7 +737,6 @@ function mergeFindings(findings, existingFindings) {
     return existingFindings;
 }
 // TODO 
-// - remove all existing findings for that article, that where not found in this scan
 // - introduce distinct filter states and apply them on each update of any other filter
 // - show last scan date for each article
 function state() {
