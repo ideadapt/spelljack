@@ -1,0 +1,27 @@
+{
+  "name": "spelljack",
+  "version": "1.0.0",
+  "description": "",
+  "main": "config.example.js",
+  "scripts": {
+    "dev": "npx parcel src/index.html --open"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ideadapt/spelljack.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ideadapt/spelljack/issues"
+  },
+  "homepage": "https://github.com/ideadapt/spelljack#readme",
+  "devDependencies": {
+    "parcel": "^2.7.0",
+    "postcss": "^8.4.16",
+    "tailwindcss": "^3.1.8"
+  },
+  "dependencies": {
+    "alpinejs": "^3.10.3"
+  }
+}
