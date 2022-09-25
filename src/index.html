@@ -6,7 +6,7 @@
         
         <script type="module">
             import config from '/config.js'
-            import {mergeFindings} from './module.mjs'
+            import {mergeFindings} from './spelljack.mjs'
             import Alpine from 'alpinejs'    
             window.Alpine = Alpine     
 
@@ -28,7 +28,7 @@
                 }
             }
 
-            async function extractArticleContent(articleUrl){
+            async function extractArticleData(articleUrl){
                 const articleRes = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(articleUrl)}&rand=${Math.random()}`)
                 if(articleRes.ok){
                     const xml = JSON.parse(await articleRes.text()).contents
@@ -37,11 +37,16 @@
                     return {
                         title: xmlDoc.querySelector(".main .entry-title").innerText,
                         html: xmlDoc.querySelector(".main .entry-content").innerHTML,
-                        date: xmlDoc.querySelector(".main .entry-meta time").getAttribute('datetime')
+                        date: xmlDoc.querySelector(".main .entry-meta time").getAttribute('datetime'),
+                        id: xmlDoc.querySelector('link[rel=shortlink]').getAttribute('href').match(/p=(\d+)/)[1] || 'no-id',
                     }
                 }else{
                     throw articleRes
                 }
+            }
+
+            function enhanceArticleWithData(article, articleData){
+                article.editUrl = `https://www.digitale-gesellschaft.ch/wp-admin/post.php?post=${articleData.id}&action=edit`
             }
 
             function decodeHTMLEntities(text) {
@@ -53,7 +58,8 @@
             function normalizeContent(articleContent){
                 const noHtml = articleContent.replaceAll(/<[^>]*>/g, " ")
                 const noNewLines = noHtml.split(/\n/g).join(' ')
-                return decodeHTMLEntities(noNewLines)
+                const noColon = noNewLines.replaceAll(':', '')
+                return decodeHTMLEntities(noColon)
             }
 
             async function checkSpelling(text){
@@ -66,6 +72,7 @@
                     },
                     body: JSON.stringify({
                         language: "de-CH",
+                        dictionary_id: config.dict_name,
                         key,
                         text
                     })
@@ -79,7 +86,7 @@
             }
 
             async function createDictionary(name){
-                const response = await fetch(`https://api.textgears.com/custom/createdictionary?key=${config.key}&id=${config.dict_key}&title=${config.dict_title}`,
+                const response = await fetch(`https://api.textgears.com/custom/createdictionary?key=${config.key}&id=${config.dict_name}&title=${config.dict_title}`,
                     {
                         method: 'POST'
                     }
@@ -90,7 +97,7 @@
             }
 
             async function ignoreFinding(finding){
-                const response = await fetch(`https://api.textgears.com/custom/addexception?key=${config.key}&dictionary_id=${config.dict_key}&type=2&lang=de-CH&text=${finding.word}`, 
+                const response = await fetch(`https://api.textgears.com/custom/addexception?key=${config.key}&dictionary_id=${config.dict_name}&type=2&lang=de-CH&text=${finding.word}`, 
                 {
                     method: 'POST'
                 })
@@ -166,6 +173,7 @@
             // TODO 
             // - show last scan date for each article
             // - store remote npm i -S simple-github-gist-api
+            // - show context of word (e.g. surrounding 5 words)
 
             window.spelljackApp = function(){
                 return {
@@ -181,6 +189,7 @@
                         this.articles = urls.map(url => {
                             return {
                                 url,
+                                editUrl: '',
                                 title: urlToTitle(url),
                                 checks: [],
                                 selected: false
@@ -192,8 +201,9 @@
                     async scan(url){
                         this.scanning = true
                         console.log('scanning', url)
-                        const content = await extractArticleContent(url)
-                        const errors = await checkSpelling(normalizeContent(content.html))
+                        const articleData = await extractArticleData(url)
+                        enhanceArticleWithData(this.articles.filter(a => a.url === url)[0], articleData)
+                        const errors = await checkSpelling(normalizeContent(articleData.html))
                         const findings = mapToFindings(errors, url)
                         console.log('findings', findings)
                         this.scanning = false
@@ -234,6 +244,7 @@
                             ))
                             || !this.filterFindingsBySelectedArticles)
                         )
+                        .sort((a, b) => b.ignore - a.ignore || a.word.localeCompare(b.word))
                     },
                     get filteredArticles(){
                         const selectedFindings = this.findings.filter(f => f.selected)
@@ -283,7 +294,15 @@
             <article class="basis-2/3">
                 <h1 class="text-xl">Articles</h1>
                 <div class="py-3 pb-8 flex gap-4 items-center">
-                    <button x-on:click.prevent="scanSelected()" :class="{'!bg-slate-400 !cursor-not-allowed': nrOfSelectedArticles == 0}">Scan</button>
+                    <button x-on:click.prevent="scanSelected()" :class="{'!bg-slate-400 !cursor-not-allowed': nrOfSelectedArticles == 0}">
+                        Check spelling
+                        <svg x-show="scanning" class="stroke-amber-200 inline ml-1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="margin:auto;background:transparent;display:block;" width="20px" height="20px" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid">
+                            <path fill="none" stroke-width="8" stroke-dasharray="42.76482137044271 42.76482137044271" d="M24.3 30C11.4 30 5 43.3 5 50s6.4 20 19.3 20c19.3 0 32.1-40 51.4-40 C88.6 30 95 43.3 95 50s-6.4 20-19.3 20C56.4 70 43.6 30 24.3 30z" stroke-linecap="round" style="transform:scale(0.8);transform-origin:50px 50px">
+                              <animate attributeName="stroke-dashoffset" repeatCount="indefinite" dur="7.142857142857142s" keyTimes="0;1" values="0;256.58892822265625"></animate>
+                            </path>
+                        </svg>
+                        
+                    </button>
                     <x-toggle-button text="Filter finding" x-model="filterFindingsBySelectedArticles"></x-toggle-button>
                 </div>
                 <div class="overflow-y-scroll shadow-md" style="height: calc(100vh - 9rem)">
@@ -293,13 +312,13 @@
                         </path>
                     </svg>
                     <table class="w-full">
-                        <template x-for="article in filteredArticles">
+                        <template x-for="article in filteredArticles" :key="article.url">
                             <tr class="odd:bg-slate-50 even:bg-white select-none hover:cursor-pointer hover:bg-slate-100" 
                                 :class="{ '!bg-amber-200': article.selected }"
                                 x-on:click="article.selected = !article.selected">
                                 <td x-text="`${article.title}`"
                                     class="px-3 py-3 max-w-prose truncate"></td>
-                                <td class="p-3"><a :href="article.url" target="_blank" class="hover:stroke-amber-700 stroke-slate-500">
+                                <td class="p-3"><a :href="article.editUrl" target="_blank" class="hover:stroke-amber-700 stroke-slate-500">
                                     <svg xmlns="http://www.w3.org/2000/svg" style="transform: scale(0.75)" width="20" height="20"><path fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11v6a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6M13 1h6v6M8 12 19 1"/></svg>
                                 </a></td>
                             </tr>
@@ -308,33 +327,29 @@
                 </div>
             </article>
             <article class="basis-1/3">
-                <h1 class="text-xl">Findings
-                    <svg x-show="scanning === true" class="stroke-amber-700 inline" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="margin:auto;background:transparent;display:block;" width="40px" height="40px" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid">
-                        <path fill="none" stroke-width="8" stroke-dasharray="42.76482137044271 42.76482137044271" d="M24.3 30C11.4 30 5 43.3 5 50s6.4 20 19.3 20c19.3 0 32.1-40 51.4-40 C88.6 30 95 43.3 95 50s-6.4 20-19.3 20C56.4 70 43.6 30 24.3 30z" stroke-linecap="round" style="transform:scale(0.8);transform-origin:50px 50px">
-                          <animate attributeName="stroke-dashoffset" repeatCount="indefinite" dur="7.142857142857142s" keyTimes="0;1" values="0;256.58892822265625"></animate>
-                        </path>
-                    </svg>
-                </h1>
+                <h1 class="text-xl">Findings</h1>
                 <div class="py-3 pb-8 flex flex-row gap-4 justify-between items-center">
                     <button x-on:click.prevent="toggleIgnoreSelected()" :class="{'!bg-slate-400 !cursor-not-allowed': nrOfSelectedFindings === 0}">Toggle ignore</button>
                     <x-toggle-button text="Show ignored" x-model="showIgnored"></x-toggle-button>
                     <x-toggle-button text="Filter articles" x-model="filterArticlesBySelectedFindings"></x-toggle-button>
                 </div>
-                <table class="max-w-md shadow-md">
-                    <tbody>
-                        <template x-for="finding in filteredFindings">
-                            <tr class="odd:bg-slate-50 even:bg-white hover:cursor-pointer hover:bg-slate-100" 
-                                :class="{ '!bg-amber-200': finding.selected }"
-                                x-on:click="finding.selected = !finding.selected">
-                                <td x-text="`${finding.word}`" class="px-3 py-1.5"></td>
-                                <td class="px-3 py-1.5">
-                                    <svg x-show="!finding.ignore" xmlns="http://www.w3.org/2000/svg" class="stroke-amber-500 fill-amber-500" viewBox="0 0 256 256" width="20" height="20"><rect width="256" height="256" fill="none"/><circle cx="128" cy="128" r="96" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="180" r="12"/><path fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="16" d="M127.9995,144.0045v-8a28,28,0,1,0-28-28"/></svg>
-                                    <svg x-show="finding.ignore" xmlns="http://www.w3.org/2000/svg" class="fill-green-500" viewBox="0 0 64 64" width="16" height="16"><path d="M20.27,52.78a3,3,0,0,0,4.24,0L61.1,16.19A3,3,0,0,0,56.86,12L22.39,46.42,7,31.07A3,3,0,1,0,2.8,35.31Z"/></svg>
-                                </td>
-                            </tr>
-                        </template>
-                    </tbody>
-                </table>
+                <div class="overflow-y-scroll shadow-md w-full" style="height: calc(100vh - 9rem)">
+                    <table class="w-full">
+                        <tbody>
+                            <template x-for="finding in filteredFindings" :key="finding.word">
+                                <tr class="odd:bg-slate-50 even:bg-white hover:cursor-pointer hover:bg-slate-100" 
+                                    :class="{ '!bg-amber-200': finding.selected }"
+                                    x-on:click="finding.selected = !finding.selected">
+                                    <td x-text="`${finding.word}`" class="px-3 py-1.5 w-full"></td>
+                                    <td class="px-3 py-1.5">
+                                        <svg x-show="!finding.ignore" xmlns="http://www.w3.org/2000/svg" class="stroke-amber-500 fill-amber-500" viewBox="0 0 256 256" width="20" height="20"><rect width="256" height="256" fill="none"/><circle cx="128" cy="128" r="96" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="180" r="12"/><path fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="16" d="M127.9995,144.0045v-8a28,28,0,1,0-28-28"/></svg>
+                                        <svg x-show="finding.ignore" xmlns="http://www.w3.org/2000/svg" class="fill-green-500" viewBox="0 0 64 64" width="16" height="16"><path d="M20.27,52.78a3,3,0,0,0,4.24,0L61.1,16.19A3,3,0,0,0,56.86,12L22.39,46.42,7,31.07A3,3,0,1,0,2.8,35.31Z"/></svg>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
             </article>
         </div>
         <footer class="text-sm text-gray-500 mt-10">

@@ -32,6 +32,5 @@ export function mergeFindings(findings, existingFindings){
     existingFindings = existingFindings.filter(ef => ef.refs.length > 0)
             
     existingFindings.push(...(newFindings.values()))
-    existingFindings.sort((a, b) => a.word.localeCompare(b.word))
     return existingFindings
 }
