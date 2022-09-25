@@ -6,9 +6,12 @@
         
         <script type="module">
             import config from '/config.js'
+            import {Octokit} from 'octokit'
             import {mergeFindings} from './spelljack.mjs'
             import Alpine from 'alpinejs'    
-            window.Alpine = Alpine     
+            window.Alpine = Alpine;
+
+            const octokit = new Octokit({ auth: config.gh_gist_token })
 
             const sitemapUrl = 'https://www.digitale-gesellschaft.ch/sitemaps/post-sitemap1.xml'
             const urlToTitle = url => url
@@ -144,35 +147,39 @@
                 })
             }
 
-            const storeName = 'spellcheck'
-            function loadState(){
-                const state = localStorage.getItem(storeName)
-                if(!state){
-                    const newState = {
-                        findings: []
-                    }
-                    localStorage.setItem(storeName, JSON.stringify(newState))
-                    return newState
+            async function loadState(){
+                const gist = await octokit.request(`GET /gists/${config.gist_id}`, {
+                    gist_id: config.gist_id
+                })
+                const gistText = gist.data.files['db.json'].content
+                const gistJson = JSON.parse(gistText)
+                if(!("findings" in gistJson)){
+                    gistJson.findings = []
                 }
-                return JSON.parse(state)
+                return gistJson
             }
-            function storeState(state){
-                localStorage.setItem(storeName, JSON.stringify(state))
+            async function storeState(state){
+                await octokit.request(`PATCH /gists/${config.gist_id}`, {
+                    gist_id: config.gist_id,
+                    description: 'spelljack-db-' + config.dict_name,
+                    files: {
+                        'db.json': { content: JSON.stringify(state) }
+                    }
+                })
             }
 
-            function storeFindings(findings){
-                const state = loadState()
+            async function storeFindings(findings){
+                const state = await loadState()
                 state.findings = findings.map(f => ({...f, selected: false}))
-                storeState(state)
+                await storeState(state)
             }
 
-            function loadFindings(){
-                return loadState().findings
+            async function loadFindings(){
+                return (await loadState()).findings
             }
 
             // TODO 
             // - show last scan date for each article
-            // - store remote npm i -S simple-github-gist-api
             // - show context of word (e.g. surrounding 5 words)
 
             window.spelljackApp = function(){
@@ -180,23 +187,33 @@
                     articles: [],
                     findings: [],
                     scanning: false,
+                    articlesLoading: true,
+                    findingsLoading: true,
                     showIgnored: false,
                     filterFindingsBySelectedArticles: false,
                     filterArticlesBySelectedFindings: false,
                     async init(){
                         console.log('init')
-                        const urls = await articleUrls(sitemapUrl)
-                        this.articles = urls.map(url => {
-                            return {
-                                url,
-                                editUrl: '',
-                                title: urlToTitle(url),
-                                checks: [],
-                                selected: false
-                            }
-                        })
-                        this.findings = loadFindings()
-                        createDictionary()
+
+                        await Promise.all([
+                            articleUrls(sitemapUrl).then(urls => {
+                                this.articles = urls.map(url => {
+                                    return {
+                                        url,
+                                        editUrl: '',
+                                        title: urlToTitle(url),
+                                        checks: [],
+                                        selected: false
+                                    }
+                                })
+                                this.articlesLoading = false
+                            }),
+                            loadFindings().then(fs => {
+                                this.findings = fs
+                                this.findingsLoading = false
+                            }),
+                            createDictionary()
+                        ])
                     },
                     async scan(url){
                         this.scanning = true
@@ -306,7 +323,7 @@
                     <x-toggle-button text="Filter finding" x-model="filterFindingsBySelectedArticles"></x-toggle-button>
                 </div>
                 <div class="overflow-y-scroll shadow-md" style="height: calc(100vh - 9rem)">
-                    <svg x-show="articles.length === 0" class="stroke-amber-700" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="margin:auto;background:transparent;display:block;" width="100px" height="100px" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid">
+                    <svg x-show="articlesLoading" class="stroke-amber-700" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="margin:auto;background:transparent;display:block;" width="100px" height="100px" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid">
                         <path fill="none" stroke-width="8" stroke-dasharray="42.76482137044271 42.76482137044271" d="M24.3 30C11.4 30 5 43.3 5 50s6.4 20 19.3 20c19.3 0 32.1-40 51.4-40 C88.6 30 95 43.3 95 50s-6.4 20-19.3 20C56.4 70 43.6 30 24.3 30z" stroke-linecap="round" style="transform:scale(0.8);transform-origin:50px 50px">
                           <animate attributeName="stroke-dashoffset" repeatCount="indefinite" dur="7.142857142857142s" keyTimes="0;1" values="0;256.58892822265625"></animate>
                         </path>
@@ -334,6 +351,12 @@
                     <x-toggle-button text="Filter articles" x-model="filterArticlesBySelectedFindings"></x-toggle-button>
                 </div>
                 <div class="overflow-y-scroll shadow-md w-full" style="height: calc(100vh - 9rem)">
+                    <svg x-show="findingsLoading" class="stroke-amber-700" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="margin:auto;background:transparent;display:block;" width="100px" height="100px" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid">
+                        <path fill="none" stroke-width="8" stroke-dasharray="42.76482137044271 42.76482137044271" d="M24.3 30C11.4 30 5 43.3 5 50s6.4 20 19.3 20c19.3 0 32.1-40 51.4-40 C88.6 30 95 43.3 95 50s-6.4 20-19.3 20C56.4 70 43.6 30 24.3 30z" stroke-linecap="round" style="transform:scale(0.8);transform-origin:50px 50px">
+                          <animate attributeName="stroke-dashoffset" repeatCount="indefinite" dur="7.142857142857142s" keyTimes="0;1" values="0;256.58892822265625"></animate>
+                        </path>
+                    </svg>
+                    <p x-show="filteredFindings.length === 0 && !findingsLoading" class="text-center p-3">No findings! Maybe spell check another article?</p>
                     <table class="w-full">
                         <tbody>
                             <template x-for="finding in filteredFindings" :key="finding.word">

@@ -1,14 +1,6 @@
-# scan process
+# setup
 
-1. extract loc from https://www.digitale-gesellschaft.ch/sitemaps/post-sitemap1.xml
-2. load loc
-    1. get shortlink
-    2. replace multiple white spaces with single white space
-3. check spelling
-4. store findings
-    1. {
-        word: "fötizid",
-        refs: ["shortlink1"],
-        ignore: false
-    }
-5. remove all existing findings for that post, that where not found in this check
+1. Generate a GitHub access token with gist scope: https://github.com/settings/tokens/new?scopes=gist.
+   Set it in config.gh_gist_token
+2. Create a secret gist with any file in it. Set it's id in config.gist_id
+3. Set textgears api key in config.key. Set other textgears properties: dict_name (only [a-z_-]), dict_title

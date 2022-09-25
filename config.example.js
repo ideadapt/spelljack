@@ -1,5 +1,7 @@
 export default {
     key: "1234",
     dict_name: "mydict",
-    dict_title: "My Dictionary"
+    dict_title: "My Dictionary",
+    gh_gist_token: "ghp_...5rIZ3...",
+    gist_id: "...."
 }
