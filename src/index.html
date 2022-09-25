@@ -2,15 +2,13 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link href="./index.css" rel="stylesheet">
+        <link href="index.css" rel="stylesheet">
         
         <script type="module">
             import config from '/config.js'
             import {Octokit} from 'octokit'
             import {mergeFindings} from './spelljack.mjs'
-            import Alpine from 'alpinejs'    
-            window.Alpine = Alpine;
-
+            
             const octokit = new Octokit({ auth: config.gh_gist_token })
 
             const sitemapUrl = 'https://www.digitale-gesellschaft.ch/sitemaps/post-sitemap1.xml'
@@ -386,7 +384,8 @@
                 Code at <a href="https://github.com/ideadapt/spelljack">ideadapts spelljack repo</a>
             </p>
         </footer>
-        <script defer>   
+        <script type="module">
+            import Alpine from 'alpinejs'   
             Alpine.start()
         </script>
     </body>

@@ -2,9 +2,9 @@
   "name": "spelljack",
   "version": "1.0.0",
   "description": "",
-  "main": "config.example.js",
   "scripts": {
-    "dev": "npx parcel src/index.html --open",
+    "dev": "rm -rf dist/*.* && npx parcel src/index.html --open",
+    "dist": "rm -rf dist/*.* && npx parcel build src/index.html --no-optimize --public-url ./",
     "test": "npx mocha test/*.mjs",
     "test:watch": "nodemon --watch test --watch src --exec mocha test/*.mjs"
   },
