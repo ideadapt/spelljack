@@ -1,7 +1,11 @@
 
 /**
- * add finding-url to existing finding if same word
- * remove all existing finding refs not present in findings
+ * add finding-ref to existing finding if same word
+ * remove all ref from existing finding if it's not present in findings anymore
+ *  (e.g. a word has been found in a past scan, in the mean time the article was updated / fixed, 
+ *  => the current rescan does not find that same word anymore.
+ *  Hence that existing finding must be updated to not include that article anymore as ref)
+ * an existing finding is deleted, if has no more refs
 */
 export function mergeFindings(findings, existingFindings){
     const newFindings = new Set(findings)
@@ -17,9 +21,15 @@ export function mergeFindings(findings, existingFindings){
         }
     }
 
-    // TODO still full of bugs => unit test with mocha
-    // remove existingFinding if: existingFindingsForUrl not in newFindings
-   
+    const foundWords = [...new Set(findings.map(f => f.word))]
+
+    for(const finding of findings){
+        const scannedRef = finding.refs[0]
+        const existingFindingsForRef = existingFindings.filter(ef => ef.refs.includes(scannedRef))
+        const existingFindingsNotFoundAnymore = existingFindingsForRef.filter(ef => !foundWords.includes(ef.word))
+        existingFindingsNotFoundAnymore.forEach(ea => ea.refs = ea.refs.filter(r => r !== scannedRef))
+    }
+    existingFindings = existingFindings.filter(ef => ef.refs.length > 0)
             
     existingFindings.push(...(newFindings.values()))
     existingFindings.sort((a, b) => a.word.localeCompare(b.word))
