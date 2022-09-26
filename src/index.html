@@ -179,17 +179,22 @@
             // TODO 
             // - show last scan date for each article
             // - show context of word (e.g. surrounding 5 words)
+            // - sort findings by locations
+            // - api keys are sent to client and over the wire (query string) => hint in readme
 
             window.spelljackApp = function(){
                 return {
                     articles: [],
                     findings: [],
+                    page: 1,
+                    pageSize: 20,
                     scanning: false,
                     articlesLoading: true,
                     findingsLoading: true,
                     showIgnored: false,
                     filterFindingsBySelectedArticles: false,
                     filterArticlesBySelectedFindings: false,
+
                     async init(){
                         console.log('init')
 
@@ -263,14 +268,14 @@
                     },
                     get filteredArticles(){
                         const selectedFindings = this.findings.filter(f => f.selected)
+                        const page = this.filterArticlesBySelectedFindings ? 1 : this.page
                         return this.articles.filter(a => 
                             ((this.filterArticlesBySelectedFindings && (selectedFindings.length === 0 || 
                                 selectedFindings.some(f => f.refs.some(urlToSelect => a.url === urlToSelect))
                             ))
                             || !this.filterArticlesBySelectedFindings)
-                        )
+                        ).slice((page-1) * this.pageSize, page * this.pageSize)
                     },
-                    
                 }
             }
             window.addEventListener('DOMContentLoaded', ()=>{
@@ -320,25 +325,35 @@
                     </button>
                     <x-toggle-button text="Filter finding" x-model="filterFindingsBySelectedArticles"></x-toggle-button>
                 </div>
-                <div class="overflow-y-scroll shadow-md" style="height: calc(100vh - 9rem)">
-                    <svg x-show="articlesLoading" class="stroke-amber-700" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="margin:auto;background:transparent;display:block;" width="100px" height="100px" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid">
-                        <path fill="none" stroke-width="8" stroke-dasharray="42.76482137044271 42.76482137044271" d="M24.3 30C11.4 30 5 43.3 5 50s6.4 20 19.3 20c19.3 0 32.1-40 51.4-40 C88.6 30 95 43.3 95 50s-6.4 20-19.3 20C56.4 70 43.6 30 24.3 30z" stroke-linecap="round" style="transform:scale(0.8);transform-origin:50px 50px">
-                          <animate attributeName="stroke-dashoffset" repeatCount="indefinite" dur="7.142857142857142s" keyTimes="0;1" values="0;256.58892822265625"></animate>
-                        </path>
-                    </svg>
-                    <table class="w-full">
-                        <template x-for="article in filteredArticles" :key="article.url">
-                            <tr class="odd:bg-slate-50 even:bg-white select-none hover:cursor-pointer hover:bg-slate-100" 
-                                :class="{ '!bg-amber-200': article.selected }"
-                                x-on:click="article.selected = !article.selected">
-                                <td x-text="`${article.title}`"
-                                    class="px-3 py-3 max-w-prose truncate"></td>
-                                <td class="p-3"><a :href="article.editUrl" target="_blank" class="hover:stroke-amber-700 stroke-slate-500">
-                                    <svg xmlns="http://www.w3.org/2000/svg" style="transform: scale(0.75)" width="20" height="20"><path fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11v6a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6M13 1h6v6M8 12 19 1"/></svg>
-                                </a></td>
-                            </tr>
-                        </template>
-                    </table>
+                <div class="shadow-md relative" style="height: calc(100vh - 9rem)">
+                    <div class="absolute right-0 z-50 opacity-50 hover:opacity-100 font-bold" style="top: -25px;">
+                        <button x-on:click="page = Math.max(page-1, 1)" style="
+                        border-top-right-radius: 0;
+                        border-bottom-right-radius: 0;">&lt;</button><button x-on:click="page++" style="
+                        border-top-left-radius: 0;
+                        border-bottom-left-radius: 0;
+                        border-bottom-right-radius: 0;">&gt;</button>
+                    </div>
+                    <div class="overflow-y-scroll" style="height: calc(100vh - 9rem)">
+                        <svg x-show="articlesLoading" class="stroke-amber-700" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="margin:auto;background:transparent;display:block;" width="100px" height="100px" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid">
+                            <path fill="none" stroke-width="8" stroke-dasharray="42.76482137044271 42.76482137044271" d="M24.3 30C11.4 30 5 43.3 5 50s6.4 20 19.3 20c19.3 0 32.1-40 51.4-40 C88.6 30 95 43.3 95 50s-6.4 20-19.3 20C56.4 70 43.6 30 24.3 30z" stroke-linecap="round" style="transform:scale(0.8);transform-origin:50px 50px">
+                            <animate attributeName="stroke-dashoffset" repeatCount="indefinite" dur="7.142857142857142s" keyTimes="0;1" values="0;256.58892822265625"></animate>
+                            </path>
+                        </svg>
+                        <table class="w-full">
+                            <template x-for="article in filteredArticles" :key="article.url">
+                                <tr class="odd:bg-slate-50 even:bg-white select-none hover:cursor-pointer hover:bg-slate-100" 
+                                    :class="{ '!bg-amber-200': article.selected }"
+                                    x-on:click="article.selected = !article.selected">
+                                    <td x-text="`${article.title}`"
+                                        class="px-3 py-3 max-w-prose truncate"></td>
+                                    <td class="p-3"><a :href="article.editUrl" target="_blank" class="hover:stroke-amber-700 stroke-slate-500">
+                                        <svg xmlns="http://www.w3.org/2000/svg" style="transform: scale(0.75)" width="20" height="20"><path fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11v6a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6M13 1h6v6M8 12 19 1"/></svg>
+                                    </a></td>
+                                </tr>
+                            </template>
+                        </table>
+                    </div>
                 </div>
             </article>
             <article class="basis-1/3">
