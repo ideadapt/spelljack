@@ -5,6 +5,6 @@
 @layer components{
 
     button {
-        @apply whitespace-nowrap px-3 py-0.5 bg-amber-600 text-white rounded shadow-sm hover:bg-amber-700 hover:shadow-md focus:bg-amber-700 focus:shadow-md focus:outline-none focus:ring-0 active:bg-amber-800 active:shadow-md transition duration-150 ease-in-out;
+        @apply whitespace-nowrap px-3 py-0.5 bg-amber-600 text-white rounded-md shadow-sm hover:bg-amber-700 hover:shadow-md focus:bg-amber-700 focus:shadow-md focus:outline-none focus:ring-0 active:bg-amber-800 active:shadow-md transition duration-150 ease-in-out;
     }
 }
