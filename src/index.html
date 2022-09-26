@@ -245,8 +245,8 @@
                                 await ignoreFinding(f)
                             }
                             f.selected = false
-                            storeFindings(this.findings)
                         })
+                        storeFindings(this.findings)
                     },
                     get nrOfSelectedArticles(){
                         return this.articles.filter(a => a.selected).length
