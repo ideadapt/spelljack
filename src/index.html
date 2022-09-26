@@ -187,13 +187,12 @@
                     state.findings = partialState.findings.map(f => ({...f, selected: false}))
                 }
                 if(partialState.articles){
-                    state.articles = partialState.articles
+                    state.articles = partialState.articles.map(f => ({...f, selected: false}))
                 }
                 await storeState(state)
             }
 
             // TODO 
-            // - show last scan date for each article
             // - show context of word (e.g. surrounding 5 words)
             // - sort findings by locations
             // - api keys are sent to client and over the wire (query string) => hint in readme
@@ -220,7 +219,7 @@
 
                             if(articles.length === 0){
                                 return getArticleUrls(sitemapUrl).then(urls => {
-                                    this.articles = urls.map(createArticleFromUrl(url))
+                                    this.articles = urls.map(url => createArticleFromUrl(url))
                                     this.articlesLoading = false
                                     store({ articles: this.articles })
                                 })
@@ -229,13 +228,14 @@
 
                                 getArticleUrls(sitemapUrl).then(sitemapUrls => {
                                     const articleUrls = this.articles.map(a => a.url)
-                                    return sitemapUrls.some(sitemapUrl => {
-                                        if(!articleUrls.includes(sitemapUrl)){
-                                            this.articles.push(createArticleFromUrl(sitemapUrl))
-                                            return false
+                                    const countBefore = this.articles.length
+                                    sitemapUrls.some(sitemapUrl => {
+                                        if(articleUrls.includes(sitemapUrl)){
+                                            return true
                                         }
-                                        return true
+                                        this.articles.unshift(createArticleFromUrl(sitemapUrl))
                                     })
+                                    return countBefore < this.articles.length
                                 }).then(hasNew => {
                                     this.articlesLoading = false
                                     if(hasNew) {
@@ -259,7 +259,7 @@
                         this.scanning = true
                         for(const a of this.articles.filter(a => a.selected)){
                             const findings = await this.scan(a)
-                            a.checks.push({ date: new Date()})
+                            a.checks.push({ date: new Date()})                            
                             this.findings = mergeFindings(findings, this.findings)
                         }
                         this.scanning = false
@@ -275,6 +275,14 @@
                             f.selected = false
                         }
                         store({ findings: this.findings })
+                    },
+                    lastCheckLabel(article){
+                        if(article.checks && article.checks.length > 0){
+                            const date = new Date(article.checks[article.checks.length-1].date)
+                            return `${date.getDate()}.${date.getMonth()+1}.${date.getFullYear()-2000} ${date.getHours()}:${date.getMinutes()}`
+                        }else{
+                            return 'never'
+                        }
                     },
                     get nrOfSelectedArticles(){
                         return this.articles.filter(a => a.selected).length
@@ -375,6 +383,7 @@
                                     x-on:click="article.selected = !article.selected">
                                     <td x-text="`${article.title}`"
                                         class="px-3 py-3 max-w-prose truncate"></td>
+                                    <td x-text="`${lastCheckLabel(article)}`" class="px-3 py-3 text-xs"></td>
                                     <td class="p-3"><a :href="article.editUrl" target="_blank" class="hover:stroke-amber-700 stroke-slate-500">
                                         <svg xmlns="http://www.w3.org/2000/svg" style="transform: scale(0.75)" width="20" height="20"><path fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11v6a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6M13 1h6v6M8 12 19 1"/></svg>
                                     </a></td>
