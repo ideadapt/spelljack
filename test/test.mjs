@@ -1,4 +1,4 @@
-import { mergeFindings } from '../src/module.mjs'
+import { mergeFindings } from '../src/spelljack.mjs'
 
 import * as assert from 'assert'
 
@@ -67,7 +67,7 @@ describe('merge findings', () => {
 
                     const merged = mergeFindings(newFindings, existingFindings)
 
-                    assert.deepEqual(merged, [{ word: 'a', refs: ['1'] }, { word: 'aa', refs: ['2'] }])
+                    assert.deepEqual(merged, [{ word: 'aa', refs: ['2'] }, { word: 'a', refs: ['1'] }])
                 })
             })
         })
