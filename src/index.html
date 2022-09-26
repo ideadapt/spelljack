@@ -17,7 +17,7 @@
                 .replace(/\/$/, '')
                 .replaceAll('-', ' ')
         
-            async function articleUrls(sitemapUrl){
+            async function getArticleUrls(sitemapUrl){
                 const sitemapRes = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(sitemapUrl)}&rand=${Math.random()}`)
                 if(sitemapRes.ok){
                     const xml = JSON.parse(await sitemapRes.text()).contents
@@ -61,6 +61,16 @@
                 const noNewLines = noHtml.split(/\n/g).join(' ')
                 const noColon = noNewLines.replaceAll(':', '')
                 return decodeHTMLEntities(noColon)
+            }
+
+            function createArticleFromUrl(url){
+                return {
+                    url,
+                    editUrl: url,
+                    title: urlToTitle(url),
+                    checks: [],
+                    selected: false
+                }
             }
 
             async function checkSpelling(text){
@@ -154,8 +164,12 @@
                 if(!("findings" in gistJson)){
                     gistJson.findings = []
                 }
+                if(!("articles" in gistJson)){
+                    gistJson.articles = []
+                }
                 return gistJson
             }
+
             async function storeState(state){
                 await octokit.request(`PATCH /gists/${config.gist_id}`, {
                     gist_id: config.gist_id,
@@ -166,14 +180,16 @@
                 })
             }
 
-            async function storeFindings(findings){
-                const state = await loadState()
-                state.findings = findings.map(f => ({...f, selected: false}))
+            async function store(partialState){
+                const state = await loadState() 
+                // TODO ovewrite stored data for now / simplicity (i.e. not multi user friendly)
+                if(partialState.findings){
+                    state.findings = partialState.findings.map(f => ({...f, selected: false}))
+                }
+                if(partialState.articles){
+                    state.articles = partialState.articles
+                }
                 await storeState(state)
-            }
-
-            async function loadFindings(){
-                return (await loadState()).findings
             }
 
             // TODO 
@@ -198,55 +214,67 @@
                     async init(){
                         console.log('init')
 
-                        await Promise.all([
-                            articleUrls(sitemapUrl).then(urls => {
-                                this.articles = urls.map(url => {
-                                    return {
-                                        url,
-                                        editUrl: url,
-                                        title: urlToTitle(url),
-                                        checks: [],
-                                        selected: false
+                        await loadState().then(({articles, findings}) => {
+                            this.findings = findings
+                            this.findingsLoading = false
+
+                            if(articles.length === 0){
+                                return getArticleUrls(sitemapUrl).then(urls => {
+                                    this.articles = urls.map(createArticleFromUrl(url))
+                                    this.articlesLoading = false
+                                    store({ articles: this.articles })
+                                })
+                            }else{
+                                this.articles = articles
+
+                                getArticleUrls(sitemapUrl).then(sitemapUrls => {
+                                    const articleUrls = this.articles.map(a => a.url)
+                                    return sitemapUrls.some(sitemapUrl => {
+                                        if(!articleUrls.includes(sitemapUrl)){
+                                            this.articles.push(createArticleFromUrl(sitemapUrl))
+                                            return false
+                                        }
+                                        return true
+                                    })
+                                }).then(hasNew => {
+                                    this.articlesLoading = false
+                                    if(hasNew) {
+                                        store({ articles: this.articles })
                                     }
                                 })
-                                this.articlesLoading = false
-                            }),
-                            loadFindings().then(fs => {
-                                this.findings = fs
-                                this.findingsLoading = false
-                            }),
-                            createDictionary()
-                        ])
+                            }
+                        })
+                        createDictionary()
                     },
-                    async scan(url){
-                        this.scanning = true
-                        console.log('scanning', url)
-                        const articleData = await extractArticleData(url)
-                        enhanceArticleWithData(this.articles.filter(a => a.url === url)[0], articleData)
-                        const errors = await checkSpelling(normalizeContent(articleData.html))
-                        const findings = mapToFindings(errors, url)
+                    async scan(article){
+                        console.log('scanning', article.url)
+                        const articleData = await extractArticleData(article.url)
+                        enhanceArticleWithData(article, articleData)
+                        const spellingErrors = await checkSpelling(normalizeContent(articleData.html))
+                        const findings = mapToFindings(spellingErrors, article.url)
                         console.log('findings', findings)
-                        this.scanning = false
                         return findings
                     },
                     async scanSelected(){
-                        this.articles.filter(a => a.selected).forEach(async a => {
-                            const findings = await this.scan(a.url)
-                            a.checks.push({ date: new Date()}) // TODO articles not stored yet, check date has no value yet
+                        this.scanning = true
+                        for(const a of this.articles.filter(a => a.selected)){
+                            const findings = await this.scan(a)
+                            a.checks.push({ date: new Date()})
                             this.findings = mergeFindings(findings, this.findings)
-                        })
-                        storeFindings(this.findings)
+                        }
+                        this.scanning = false
+                        store({findings: this.findings, articles: this.articles})
                     },
                     async toggleIgnoreSelected(){
-                        this.findings.filter(f => f.selected).forEach(async f => {
+                        for(const f of this.findings.filter(f => f.selected)) {
                             if(f.ignore){
                                 await unIgnoreFinding(f)
                             }else{
                                 await ignoreFinding(f)
                             }
                             f.selected = false
-                        })
-                        storeFindings(this.findings)
+                        }
+                        store({ findings: this.findings })
                     },
                     get nrOfSelectedArticles(){
                         return this.articles.filter(a => a.selected).length
@@ -268,7 +296,7 @@
                     },
                     get filteredArticles(){
                         const selectedFindings = this.findings.filter(f => f.selected)
-                        const page = this.filterArticlesBySelectedFindings ? 1 : this.page
+                        const page = this.filterArticlesBySelectedFindings && this.nrOfSelectedFindings > 0 ? 1 : this.page
                         return this.articles.filter(a => 
                             ((this.filterArticlesBySelectedFindings && (selectedFindings.length === 0 || 
                                 selectedFindings.some(f => f.refs.some(urlToSelect => a.url === urlToSelect))
@@ -334,8 +362,8 @@
                         border-bottom-left-radius: 0;
                         border-bottom-right-radius: 0;">&gt;</button>
                     </div>
-                    <div class="overflow-y-scroll" style="height: calc(100vh - 9rem)">
-                        <svg x-show="articlesLoading" class="stroke-amber-700" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="margin:auto;background:transparent;display:block;" width="100px" height="100px" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid">
+                    <div class="overflow-y-scroll relative" style="height: calc(100vh - 9rem)">
+                        <svg x-show="articlesLoading" class="stroke-amber-700 absolute top-0 w-full" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="margin:auto;background:transparent;display:block;" width="100px" height="100px" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid">
                             <path fill="none" stroke-width="8" stroke-dasharray="42.76482137044271 42.76482137044271" d="M24.3 30C11.4 30 5 43.3 5 50s6.4 20 19.3 20c19.3 0 32.1-40 51.4-40 C88.6 30 95 43.3 95 50s-6.4 20-19.3 20C56.4 70 43.6 30 24.3 30z" stroke-linecap="round" style="transform:scale(0.8);transform-origin:50px 50px">
                             <animate attributeName="stroke-dashoffset" repeatCount="indefinite" dur="7.142857142857142s" keyTimes="0;1" values="0;256.58892822265625"></animate>
                             </path>
