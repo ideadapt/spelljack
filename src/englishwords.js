@@ -1,4 +1,4 @@
-export default x = `the
+export const words = `the
 be
 and
 of

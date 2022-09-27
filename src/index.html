@@ -445,8 +445,8 @@
             import Alpine from 'alpinejs'   
             Alpine.start()
 
-            import ew from './englishwords.js'
-            window.spelljackEnglishWords = new Set(ew.split(/\n/))
+            import {words} from './englishwords.js'
+            window.spelljackEnglishWords = new Set(words.split(/\n/))
         </script>
     </body>
 </html>
