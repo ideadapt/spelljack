@@ -73,13 +73,13 @@ describe('merge findings', () => {
         })
         describe('for existing with single ref', () => {
             describe('different word', () => {
-                it('should return only new', () => {
+                it('should return existing (with removed unfound ref => empty refs) plus new', () => {
                     const existingFindings = [{ word: 'aa', refs: ['1'] }]
                     const newFindings = [{ word: 'a', refs: ['1'] }]
 
                     const merged = mergeFindings(newFindings, existingFindings)
 
-                    assert.deepEqual(merged, [{ word: 'a', refs: ['1'] }])
+                    assert.deepEqual(merged, [{ word: 'aa', refs: [] }, { word: 'a', refs: ['1'] }])
                 })
             })
         })

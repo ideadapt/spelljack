@@ -29,7 +29,7 @@ export function mergeFindings(findings, existingFindings){
         const existingFindingsNotFoundAnymore = existingFindingsForRef.filter(ef => !foundWords.includes(ef.word))
         existingFindingsNotFoundAnymore.forEach(ea => ea.refs = ea.refs.filter(r => r !== scannedRef))
     }
-    existingFindings = existingFindings.filter(ef => ef.refs.length > 0)
+    //existingFindings = existingFindings.filter(ef => ef.refs.length > 0)
             
     existingFindings.push(...(newFindings.values()))
     return existingFindings

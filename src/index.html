@@ -195,6 +195,7 @@
             // TODO 
             // - show context of word (e.g. surrounding 5 words)
             // - sort findings by locations
+            // - ignore finding if contained in static english-999 dict
             // - api keys are sent to client and over the wire (query string) => hint in readme
 
             window.spelljackApp = function(){
@@ -207,6 +208,7 @@
                     articlesLoading: true,
                     findingsLoading: true,
                     showIgnored: false,
+                    showFixed: true,
                     filterFindingsBySelectedArticles: false,
                     filterArticlesBySelectedFindings: false,
 
@@ -298,7 +300,8 @@
                             ((this.filterFindingsBySelectedArticles && (selectedArticleUrls.length === 0 || 
                                 f.refs.some(r => selectedArticleUrls.includes(r))
                             ))
-                            || !this.filterFindingsBySelectedArticles)
+                            || !this.filterFindingsBySelectedArticles) &&
+                            (this.showFixed || f.refs.length > 0)
                         )
                         .sort((a, b) => b.ignore - a.ignore || a.word.localeCompare(b.word))
                     },
@@ -412,11 +415,12 @@
                             <template x-for="finding in filteredFindings" :key="finding.word">
                                 <tr class="odd:bg-slate-50 even:bg-white hover:cursor-pointer hover:bg-slate-100" 
                                     :class="{ '!bg-amber-200': finding.selected }"
-                                    x-on:click="finding.selected = !finding.selected">
+                                    x-on:click="finding.refs.length > 0 && (finding.selected = !finding.selected)">
                                     <td x-text="`${finding.word}`" class="px-3 py-1.5 w-full"></td>
                                     <td class="px-3 py-1.5">
-                                        <svg x-show="!finding.ignore" xmlns="http://www.w3.org/2000/svg" class="stroke-amber-500 fill-amber-500" viewBox="0 0 256 256" width="20" height="20"><rect width="256" height="256" fill="none"/><circle cx="128" cy="128" r="96" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="180" r="12"/><path fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="16" d="M127.9995,144.0045v-8a28,28,0,1,0-28-28"/></svg>
-                                        <svg x-show="finding.ignore" xmlns="http://www.w3.org/2000/svg" class="fill-green-500" viewBox="0 0 64 64" width="16" height="16"><path d="M20.27,52.78a3,3,0,0,0,4.24,0L61.1,16.19A3,3,0,0,0,56.86,12L22.39,46.42,7,31.07A3,3,0,1,0,2.8,35.31Z"/></svg>
+                                        <svg x-show="finding.refs.length > 0 && !finding.ignore" xmlns="http://www.w3.org/2000/svg" class="stroke-amber-500 fill-amber-500" viewBox="0 0 256 256" width="20" height="20"><rect width="256" height="256" fill="none"/><circle cx="128" cy="128" r="96" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="180" r="12"/><path fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="16" d="M127.9995,144.0045v-8a28,28,0,1,0-28-28"/></svg>
+                                        <svg x-show="finding.refs.length > 0 && finding.ignore" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path d="M13 10H3c-.55 0-1 .45-1 1s.45 1 1 1h10c.55 0 1-.45 1-1s-.45-1-1-1zm0-4H3c-.55 0-1 .45-1 1s.45 1 1 1h10c.55 0 1-.45 1-1s-.45-1-1-1zm5 8v-3c0-.55-.45-1-1-1s-1 .45-1 1v3h-3c-.55 0-1 .45-1 1s.45 1 1 1h3v3c0 .55.45 1 1 1s1-.45 1-1v-3h3c.55 0 1-.45 1-1s-.45-1-1-1h-3zM3 16h6c.55 0 1-.45 1-1s-.45-1-1-1H3c-.55 0-1 .45-1 1s.45 1 1 1z"/></svg>
+                                        <svg x-show="finding.refs.length === 0" xmlns="http://www.w3.org/2000/svg" class="fill-green-500" viewBox="0 0 64 64" width="16" height="16"><path d="M20.27,52.78a3,3,0,0,0,4.24,0L61.1,16.19A3,3,0,0,0,56.86,12L22.39,46.42,7,31.07A3,3,0,1,0,2.8,35.31Z"/></svg>
                                     </td>
                                 </tr>
                             </template>
