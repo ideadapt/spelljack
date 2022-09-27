@@ -12,11 +12,14 @@ export function mergeFindings(findings, existingFindings){
     for(const newFinding of newFindings){
         const scannedRef = newFinding.refs[0]
 
-        const existing = existingFindings.find(ef => ef.word === newFinding.word)
-        if(existing){
-            // TODO use Set
-            existing.refs.push(scannedRef)
-            existing.refs = [...new Set(existing.refs)]
+        const existingFinding = existingFindings.find(ef => ef.word === newFinding.word)
+        if(existingFinding){
+            const sameWordSameRef = existingFinding.refs.find(r => r.url == scannedRef.url)
+            if(sameWordSameRef){
+                sameWordSameRef.context = scannedRef.context
+            }else{
+                existingFinding.refs.push(scannedRef)
+            }
             newFindings.delete(newFinding)
         }
     }
@@ -25,9 +28,9 @@ export function mergeFindings(findings, existingFindings){
 
     for(const finding of findings){
         const scannedRef = finding.refs[0]
-        const existingFindingsForRef = existingFindings.filter(ef => ef.refs.includes(scannedRef))
+        const existingFindingsForRef = existingFindings.filter(ef => ef.refs.map(r => r.url).includes(scannedRef.url))
         const existingFindingsNotFoundAnymore = existingFindingsForRef.filter(ef => !foundWords.includes(ef.word))
-        existingFindingsNotFoundAnymore.forEach(ea => ea.refs = ea.refs.filter(r => r !== scannedRef))
+        existingFindingsNotFoundAnymore.forEach(ea => ea.refs = ea.refs.filter(r => r.url !== scannedRef.url))
     }
     //existingFindings = existingFindings.filter(ef => ef.refs.length > 0)
             

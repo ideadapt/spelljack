@@ -147,13 +147,16 @@
                 */
 
 
-            function mapToFindings(errors, url){
+            function mapToFindings(errors, url, text){
                 return errors.map(e => {
                     return {
                         word: e.bad,
                         ignore: false,
                         selected: false,
-                        refs: [url]
+                        refs: [{
+                            url,
+                            context: text.substring(Math.max(0, e.offset - 20), Math.min(text.length-1, e.offset + e.bad.length + 20))
+                        }],
                     }
                 })
             }
@@ -196,7 +199,7 @@
             }
 
             // TODO 
-            // - show context of word (e.g. surrounding 5 words)
+            // - WIP show context of word (e.g. surrounding 5 words)
             // - sort findings by locations
 
             window.spelljackApp = function(){
@@ -253,8 +256,9 @@
                         console.log('scanning', article.url)
                         const articleData = await extractArticleData(article.url)
                         enhanceArticleWithData(article, articleData)
-                        const spellingErrors = await checkSpelling(normalizeContent(articleData.html))
-                        const findings = mapToFindings(spellingErrors, article.url)
+                        const normalizedArticleContent = normalizeContent(articleData.html)
+                        const spellingErrors = await checkSpelling(normalizedArticleContent)
+                        const findings = mapToFindings(spellingErrors, article.url, normalizedArticleContent)
                         console.log('findings', findings)
                         return findings
                     },
@@ -287,6 +291,9 @@
                             return 'never'
                         }
                     },
+                    showContext(finding){
+                        console.log(finding.refs.map(r => `${r.url}: ${r.context || 'no context. run spell check again.'}`).join(' ; '))
+                    },
                     get nrOfSelectedArticles(){
                         return this.articles.filter(a => a.selected).length
                     },
@@ -299,7 +306,7 @@
                         return this.findings.filter(f => 
                             (this.showIgnored || !f.ignore) &&
                             ((this.filterFindingsBySelectedArticles && (selectedArticleUrls.length === 0 || 
-                                f.refs.some(r => selectedArticleUrls.includes(r))
+                                f.refs.some(r => selectedArticleUrls.includes(r.url))
                             ))
                             || !this.filterFindingsBySelectedArticles) &&
                             (this.showFixed || f.refs.length > 0)
@@ -311,7 +318,7 @@
                         const page = this.filterArticlesBySelectedFindings && this.nrOfSelectedFindings > 0 ? 1 : this.page
                         return this.articles.filter(a => 
                             ((this.filterArticlesBySelectedFindings && (selectedFindings.length === 0 || 
-                                selectedFindings.some(f => f.refs.some(urlToSelect => a.url === urlToSelect))
+                                selectedFindings.some(f => f.refs.some(({url: urlToSelect}) => a.url === urlToSelect))
                             ))
                             || !this.filterArticlesBySelectedFindings)
                         ).slice((page-1) * this.pageSize, page * this.pageSize)
@@ -416,7 +423,7 @@
                             <template x-for="finding in filteredFindings" :key="finding.word">
                                 <tr class="odd:bg-slate-50 even:bg-white hover:cursor-pointer hover:bg-slate-100" 
                                     :class="{ '!bg-amber-200': finding.selected }"
-                                    x-on:click="finding.refs.length > 0 && (finding.selected = !finding.selected)">
+                                    x-on:click="finding.refs.length > 0 && (finding.selected = !finding.selected) && showContext(finding)">
                                     <td x-text="`${finding.word}`" class="px-3 py-1.5 w-full"></td>
                                     <td class="px-3 py-1.5">
                                         <svg x-show="finding.refs.length > 0 && !finding.ignore" xmlns="http://www.w3.org/2000/svg" class="stroke-amber-500 fill-amber-500" viewBox="0 0 256 256" width="20" height="20"><rect width="256" height="256" fill="none"/><circle cx="128" cy="128" r="96" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="180" r="12"/><path fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="16" d="M127.9995,144.0045v-8a28,28,0,1,0-28-28"/></svg>
