@@ -90,7 +90,10 @@
                 })
                 if(spellRes.ok){
                     const json = await spellRes.json()
-                    return [...new Map(json.response.errors.map(error => [error.bad, error])).values()]
+                    return [...new Map(
+                        json.response.errors
+                            .filter(e => !window.spelljackEnglishWords.has(e.bad.toLowerCase()))
+                            .map(error => [error.bad, error])).values()]
                 }else{
                     throw spellRes
                 }
@@ -195,7 +198,6 @@
             // TODO 
             // - show context of word (e.g. surrounding 5 words)
             // - sort findings by locations
-            // - ignore finding if contained in static english-999 dict
 
             window.spelljackApp = function(){
                 return {
@@ -442,6 +444,9 @@
         <script type="module">
             import Alpine from 'alpinejs'   
             Alpine.start()
+
+            import ew from './englishwords.js'
+            window.spelljackEnglishWords = new Set(ew.split(/\n/))
         </script>
     </body>
 </html>
