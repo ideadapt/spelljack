@@ -1,7 +1,7 @@
 {
   "name": "spelljack",
   "version": "1.0.0",
-  "description": "",
+  "description": "Comfortably check multiple wordpress articles for spelling errors and manage those errors in one place",
   "scripts": {
     "dev": "rm -rf dist/*.* && npx parcel src/index.html --open",
     "dist": "rm -rf dist/*.* && npx parcel build src/index.html --no-optimize --public-url ./",
