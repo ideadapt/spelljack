@@ -69,7 +69,8 @@
                     editUrl: url,
                     title: urlToTitle(url),
                     checks: [],
-                    selected: false
+                    selected: false,
+                    context: ''
                 }
             }
 
@@ -155,7 +156,9 @@
                         selected: false,
                         refs: [{
                             url,
-                            context: text.substring(Math.max(0, e.offset - 20), Math.min(text.length-1, e.offset + e.bad.length + 20))
+                            context: text
+                                .substring(Math.max(0, e.offset - 20), Math.min(text.length-1, e.offset + e.bad.length + 20))
+                                .replaceAll(e.bad, '<em>' + e.bad + '</em>')
                         }],
                     }
                 })
@@ -193,13 +196,12 @@
                     state.findings = partialState.findings.map(f => ({...f, selected: false}))
                 }
                 if(partialState.articles){
-                    state.articles = partialState.articles.map(f => ({...f, selected: false}))
+                    state.articles = partialState.articles.map(f => ({...f, selected: false, context: ''}))
                 }
                 await storeState(state)
             }
 
             // TODO 
-            // - WIP show context of word (e.g. surrounding 5 words)
             // - sort findings by locations
 
             window.spelljackApp = function(){
@@ -291,8 +293,15 @@
                             return 'never'
                         }
                     },
-                    showContext(finding){
-                        console.log(finding.refs.map(r => `${r.url}: ${r.context || 'no context. run spell check again.'}`).join(' ; '))
+                    toggleShowContext(finding){
+                        finding.refs.forEach(r => {
+                            this.filteredArticles.some(a => {
+                                if(a.url === r.url){
+                                    a.context = finding.selected ? (r.context || 'No context. Run spell check again and reselect word.') : ''
+                                    return true
+                                }
+                            })
+                        })
                     },
                     get nrOfSelectedArticles(){
                         return this.articles.filter(a => a.selected).length
@@ -389,16 +398,25 @@
                         </svg>
                         <table class="w-full">
                             <template x-for="article in filteredArticles" :key="article.url">
-                                <tr class="odd:bg-slate-50 even:bg-white select-none hover:cursor-pointer hover:bg-slate-100" 
-                                    :class="{ '!bg-amber-200': article.selected }"
-                                    x-on:click="article.selected = !article.selected">
-                                    <td x-text="`${article.title}`"
-                                        class="px-3 py-3 max-w-prose truncate"></td>
-                                    <td x-text="`${lastCheckLabel(article)}`" class="px-3 py-3 text-xs"></td>
-                                    <td class="p-3"><a :href="article.editUrl" target="_blank" class="hover:stroke-amber-700 stroke-slate-500">
-                                        <svg xmlns="http://www.w3.org/2000/svg" style="transform: scale(0.75)" width="20" height="20"><path fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11v6a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6M13 1h6v6M8 12 19 1"/></svg>
-                                    </a></td>
-                                </tr>
+                                <tbody>
+                                    <tr class="odd:bg-slate-50 even:bg-white select-none hover:cursor-pointer hover:bg-slate-100 border-b-2 border-b-white" 
+                                        :class="{ '!bg-amber-200': article.selected }"
+                                        x-on:click="article.selected = !article.selected">
+                                        <td x-text="`${article.title}`"
+                                            class="px-3 py-3 max-w-prose truncate"></td>
+                                        <td x-text="`${lastCheckLabel(article)}`" class="px-3 py-3 text-xs"></td>
+                                        <td class="p-3"><a :href="article.editUrl" target="_blank" class="hover:stroke-amber-700 stroke-slate-500">
+                                            <svg xmlns="http://www.w3.org/2000/svg" style="transform: scale(0.75)" width="20" height="20"><path fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11v6a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6M13 1h6v6M8 12 19 1"/></svg>
+                                        </a></td>
+                                    </tr>
+                                    <tr class="even:bg-white select-none" 
+                                        x-if="article.context.length > 0">
+                                        <td colspan="3" 
+                                            x-html="`${article.context}`"
+                                            class="px-3 py-3 text-sm finding-context">
+                                        </td>
+                                    </tr>
+                                </tbody>
                             </template>
                         </table>
                     </div>
@@ -423,7 +441,7 @@
                             <template x-for="finding in filteredFindings" :key="finding.word">
                                 <tr class="odd:bg-slate-50 even:bg-white hover:cursor-pointer hover:bg-slate-100" 
                                     :class="{ '!bg-amber-200': finding.selected }"
-                                    x-on:click="finding.refs.length > 0 && (finding.selected = !finding.selected) && showContext(finding)">
+                                    x-on:click="finding.refs.length > 0 && (finding.selected = !finding.selected); toggleShowContext(finding)">
                                     <td x-text="`${finding.word}`" class="px-3 py-1.5 w-full"></td>
                                     <td class="px-3 py-1.5">
                                         <svg x-show="finding.refs.length > 0 && !finding.ignore" xmlns="http://www.w3.org/2000/svg" class="stroke-amber-500 fill-amber-500" viewBox="0 0 256 256" width="20" height="20"><rect width="256" height="256" fill="none"/><circle cx="128" cy="128" r="96" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="180" r="12"/><path fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="16" d="M127.9995,144.0045v-8a28,28,0,1,0-28-28"/></svg>
