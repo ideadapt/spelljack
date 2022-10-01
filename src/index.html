@@ -459,7 +459,7 @@
                         <tbody>
                             <template x-for="finding in filteredFindings" :key="finding.word">
                                 <tr class="odd:bg-slate-50 even:bg-white hover:cursor-pointer hover:bg-slate-100" 
-                                    :class="{ '!bg-amber-200': finding.selected"
+                                    :class="{ '!bg-amber-200': finding.selected }"
                                     x-on:click="(finding.selected = !finding.selected); toggleShowContext(finding)">
                                     <td x-text="`${finding.word}`" class="px-3 py-1.5 w-full"></td>
                                     <td class="px-3 py-1.5">

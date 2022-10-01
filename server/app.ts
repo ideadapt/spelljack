@@ -4,8 +4,11 @@ import { proxy } from "https://deno.land/x/oak_http_proxy@2.1.0/mod.ts";
 // docs https://deno.land/x/oak_http_proxy@2.1.0
 import { Octokit } from "https://cdn.skypack.dev/octokit?dts";
 
+
 async function getConfig(key: string){
   const envVal = Deno.env.get(key)
+  console.log(`env: ${key}=${envVal}`);
+  
   if(!envVal){
     const config = await import('../config.js') as Record<string, unknown>
     return config[key] 
@@ -13,22 +16,29 @@ async function getConfig(key: string){
   return envVal
 }
 
+const allowedOriginHosts = ['localhost', 'ideadapt.net', 'www.ideadapt.net']
+const gh_gist_token = await getConfig('gh_gist_token')
+const key = await getConfig('key')
+const dict_name = await getConfig('dict_name')
+
 const app = new Application()
 const router = new Router()
-const octokit = new Octokit({ auth: getConfig('gh_gist_token') })
+const octokit = new Octokit({ auth: gh_gist_token })
 
-function setCorsHeaders(responseHeaders: Headers){
-  responseHeaders.set('Access-Control-Allow-Origin', '*')
-  responseHeaders.set('Access-Control-Allow-Headers', 'Content-Type')
+function allowAll(context: Context){
+  const originUrl = new URL(context.request.headers.get('origin') as string)
+  if(allowedOriginHosts.includes(originUrl.hostname)){
+    const origin = originUrl.origin
+    context.response.headers.set('Access-Control-Allow-Origin', origin)
+  }
+  context.response.headers.set('Access-Control-Allow-Methods', 'OPTIONS, PATCH, POST, GET')
+  context.response.headers.set('Access-Control-Allow-Headers', 'Content-Type')
+  context.response.status = Status.OK
 }
 
-
-router.options("/proxy", (context) => {
-  setCorsHeaders(context.response.headers)
-  context.response.status = Status.OK
-})
-
-router.post("/proxy", proxy((context: Context) => {
+router
+.options('/proxy', allowAll)
+.post("/proxy", proxy((context: Context) => {
   const target = context.request.url.searchParams.get('url') as string
   console.log('target url', target)
   return new URL(target)
@@ -41,7 +51,7 @@ router.post("/proxy", proxy((context: Context) => {
 
     if(target.hostname === 'api.textgears.com'){
           const json = JSON.parse(proxyReqOpts.body as string)
-          json.key = getConfig('key')
+          json.key = key
           proxyReqOpts.body = JSON.stringify(json)
     }
 
@@ -64,25 +74,27 @@ router.get('/gists/:gist_id', async (context) => {
   if(!("articles" in gistJson)){
       gistJson.articles = []
   }
-  setCorsHeaders(context.response.headers)
+  allowAll(context)
   context.response.headers.set('Content-Type', 'application/json')
   context.response.body = gistJson
   context.response.status = Status.OK
 })
 
-router.patch('/gists/:gist_id', async (context) => {
+router
+.options('/gists/:gist_id', allowAll)
+.patch('/gists/:gist_id', async (context) => {
   console.log('PATCH gist')
   
   const state = context.request.body({ type: 'json'})
   await octokit.request(`PATCH /gists/${context.params.gist_id}`, {
     gist_id: context.params.gist_id,
-    description: 'spelljack-db-' + getConfig('dict_name'),
+    description: 'spelljack-db-' + dict_name,
     files: {
         'db.json': { content: JSON.stringify(state) }
     }
   })
 
-  setCorsHeaders(context.response.headers)
+  allowAll(context)
   context.response.headers.set('Content-Type', 'application/json')
   context.response.status = Status.OK
 })
