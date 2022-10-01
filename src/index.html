@@ -6,11 +6,8 @@
         
         <script type="module">
             import config from '/config.js'
-            import {Octokit} from 'octokit'
             import {mergeFindings} from './spelljack.mjs'
             
-            const octokit = new Octokit({ auth: config.gh_gist_token })
-
             const sitemapUrl = 'https://www.digitale-gesellschaft.ch/sitemaps/post-sitemap1.xml'
             const urlToTitle = url => url
                 .replace(/https:\/\/www.(digitale-gesellschaft|societe-numerique).ch\/\d\d\d\d\/\d\d\/\d\d\//, '')

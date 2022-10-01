@@ -3,11 +3,19 @@ import { Application, Context, Request, Router } from "https://deno.land/x/oak@v
 import { proxy } from "https://deno.land/x/oak_http_proxy@2.1.0/mod.ts";
 // docs https://deno.land/x/oak_http_proxy@2.1.0
 import { Octokit } from "https://cdn.skypack.dev/octokit?dts";
-import config from '../config.js'
+
+async function getConfig(key: string){
+  const envVal = Deno.env.get(key)
+  if(!envVal){
+    const config = await import('../config.js') as Record<string, unknown>
+    return config[key] 
+  }
+  return envVal
+}
 
 const app = new Application()
 const router = new Router()
-const octokit = new Octokit({ auth: config.gh_gist_token })
+const octokit = new Octokit({ auth: getConfig('gh_gist_token') })
 
 function setCorsHeaders(responseHeaders: Headers){
   responseHeaders.set('Access-Control-Allow-Origin', '*')
@@ -33,7 +41,7 @@ router.post("/proxy", proxy((context: Context) => {
 
     if(target.hostname === 'api.textgears.com'){
           const json = JSON.parse(proxyReqOpts.body as string)
-          json.key = config.key
+          json.key = getConfig('key')
           proxyReqOpts.body = JSON.stringify(json)
     }
 
@@ -45,11 +53,11 @@ router.get('/gists/:gist_id', async (context) => {
   console.log('GET gist')
 
   const gist = await octokit.request(`GET /gists/${context.params.gist_id}`, {
-    gist_id: config.gist_id
+    gist_id: context.params.gist_id
   })
   const gistText = gist.data.files['db.json'].content
   const gistJson = JSON.parse(gistText)
-  console.log(gistJson);
+  // TODO should be on client side?
   if(!("findings" in gistJson)){
       gistJson.findings = []
   }
@@ -66,9 +74,9 @@ router.patch('/gists/:gist_id', async (context) => {
   console.log('PATCH gist')
   
   const state = context.request.body({ type: 'json'})
-  await octokit.request(`PATCH /gists/${config.gist_id}`, {
-    gist_id: config.gist_id,
-    description: 'spelljack-db-' + config.dict_name,
+  await octokit.request(`PATCH /gists/${context.params.gist_id}`, {
+    gist_id: context.params.gist_id,
+    description: 'spelljack-db-' + getConfig('dict_name'),
     files: {
         'db.json': { content: JSON.stringify(state) }
     }
