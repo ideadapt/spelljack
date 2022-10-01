@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "description": "Comfortably check multiple wordpress articles for spelling errors and manage those errors in one place",
   "scripts": {
+    "server": "deno run --allow-net --allow-env ./server/main.ts",
+    "server:dev": "denon run --allow-net --allow-env ./server/main.ts",
     "dev": "rm -rf dist/*.* && npx parcel src/index.html --open",
     "dist": "rm -rf dist/*.* && npx parcel build src/index.html --no-optimize --public-url ./",
     "test": "npx mocha test/*.mjs",

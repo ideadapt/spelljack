@@ -7,16 +7,25 @@ Ever wanted to comfortably check multiple articles for spelling errors and manag
 2. Create a secret gist with any file in it. Set its id in `config.gist_id`
 3. Set TextGears API key in `config.key`. Set other textgears properties: `dict_name` (only [a-z_-]), `dict_title`
 
-# Disclaimer & Warning
+# Dev
 
-This is a best effort implementation for personal use with security relevant design choices:
+4. Start server `npm run server:dev`
+5. Start frontend `npm run dev`
 
-- API keys (GitHub gist and TextGears) are sent to and used in the browser. Therefore: Do not publicly expose this web application.
+# Prod
+
+6. Deploy deno server to denoland: `npm run server:deploy`
+7. Set `config.proxy_root` to endpoint of deployed server, e.g. ...
+8. Build frontend project for prod usage: `npm run dist`
+9. Deploy dist directory to any static web host.
+
 
 # What's Inside
 
 ## Technology
 
+- Deno based API server using oak
+- Denon to restart server on source change
 - Alpine.js for DOM manipulation based on application state
 - Tailwind CSS for fuzzy feeling
 - TextGears API for spell checking
