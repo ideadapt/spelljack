@@ -7,16 +7,16 @@ import { Octokit } from "https://cdn.skypack.dev/octokit?dts";
 
 async function getConfig(key: string){
   const envVal = Deno.env.get(key)
-  console.log(`env: ${key}=${envVal}`);
   
   if(!envVal){
-    const config = await import('../config.js') as Record<string, unknown>
+    const config = (await import('../config.js')).default as Record<string, unknown>
     return config[key] 
   }
+  console.log(`env: ${key}=${envVal}`)
   return envVal
 }
 
-const allowedOriginHosts = ['localhost', 'ideadapt.net', 'www.ideadapt.net']
+const allowedOriginHosts = (await getConfig('allowed_origin_hosts') as string).split(',')
 const gh_gist_token = await getConfig('gh_gist_token')
 const key = await getConfig('key')
 const dict_name = await getConfig('dict_name')

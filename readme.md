@@ -2,6 +2,8 @@ Ever wanted to comfortably check multiple articles for spelling errors and manag
 
 # Setup
 
+You must have Node and Deno installed on your machine.
+
 1. Generate a GitHub access token with gist scope: https://github.com/settings/tokens/new?scopes=gist.
    Set it in `config.gh_gist_token`
 2. Create a secret gist with any file in it. Set its id in `config.gist_id`
@@ -14,10 +16,11 @@ Ever wanted to comfortably check multiple articles for spelling errors and manag
 
 # Prod
 
-6. Deploy deno server to denoland: `npm run server:deploy`
-7. Set `config.proxy_root` to endpoint of deployed server, e.g. ...
-8. Build frontend project for prod usage: `npm run dist`
-9. Deploy dist directory to any static web host.
+6. Only once: Set up a denoland project that connects to your repository. Add environment variables for: `key`, `dict_name`, `gh_gist_token`, `allowed_origin_hosts` (comma separated list)
+7. Every time you push, the denoland project is deployed automagically.
+8. Set `config.proxy_root` to endpoint of deployed server, e.g. https://ideadapt-spelljack.deno.dev
+9. Build frontend project for prod usage: `npm run dist`
+10. Deploy dist directory to any static web host.
 
 
 # What's Inside
@@ -28,6 +31,7 @@ Ever wanted to comfortably check multiple articles for spelling errors and manag
 - Denon to restart server on source change
 - Alpine.js for DOM manipulation based on application state
 - Tailwind CSS for fuzzy feeling
+- Parcel for frontend dev and prod build
 - TextGears API for spell checking
 - GitHub gist API for storage
 - Some SVG
