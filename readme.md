@@ -17,7 +17,7 @@ You must have Node and Deno installed on your machine.
 
 # Prod
 
-6. Only once: Set up a denoland project that connects to your repository. Add environment variables for: `key`, `dict_name`, `gh_gist_token`, `allowed_origin_hosts` (comma separated list)
+6. Only once: Set up a denoland project that connects to your repository. Add environment variables for: `key`, `editor_token`, `dict_name`, `gh_gist_token`, `allowed_origin_hosts` (comma separated list)
 7. Every time you push, the denoland project is deployed automagically.
 8. Set `config.proxy_root` to endpoint of deployed server, e.g. https://ideadapt-spelljack.deno.dev
 9. Build frontend project for prod usage: `npm run dist`

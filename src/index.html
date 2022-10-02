@@ -7,6 +7,8 @@
         <script type="module">
             import config from '/config.js'
             import {mergeFindings} from './spelljack.mjs'
+
+            let editor_token = localStorage.getItem('digiges_editor_token') || ''
             
             const sitemapUrl = 'https://www.digitale-gesellschaft.ch/sitemaps/post-sitemap1.xml'
             const urlToTitle = url => url
@@ -15,6 +17,15 @@
                 .replaceAll('-', ' ')
             const urlFilter = (url) => url.indexOf('societe-numerique.ch') === -1
 
+            function tryLogin(response, reload = false){
+                if(response.status === 401){
+                    editor_token = prompt('Enter editor token (try again afterwards)')
+                    localStorage.setItem('digiges_editor_token', editor_token)
+                    if(reload === true) location.reload()
+                }else {
+                    throw response
+                }
+            }
                         
             async function fetchProxied(url, init){
                 return fetch(`${config.proxy_root}/proxy?url=${encodeURIComponent(url)}`, init)
@@ -82,7 +93,7 @@
                     method: 'POST',
                     headers: {
                         'content-type': 'application/json',
-                        'Authorization': 'Bearer ' + config.editor_token
+                        'Authorization': 'Bearer ' + editor_token
                     },
                     body: JSON.stringify({
                         language: "de-CH",
@@ -97,7 +108,7 @@
                             .filter(e => !window.spelljackEnglishWords.has(e.bad.toLowerCase()))
                             .map(error => [error.bad, error])).values()]
                 }else{
-                    throw spellRes
+                    tryLogin(spellRes)
                 }
             }
 
@@ -107,7 +118,7 @@
                         method: 'POST',
                         headers: {
                             'content-type': 'application/json',
-                            'Authorization': 'Bearer ' + config.editor_token
+                            'Authorization': 'Bearer ' + editor_token
                         },
                         body: JSON.stringify({
                             id: config.dict_name,
@@ -116,7 +127,7 @@
                     },
                 )
                 if(!response.ok){
-                    throw response
+                    tryLogin(response, true)
                 }
             }
 
@@ -126,7 +137,7 @@
                     method: 'POST',
                     headers: {
                         'content-type': 'application/json',
-                        'Authorization': 'Bearer ' + config.editor_token
+                        'Authorization': 'Bearer ' + editor_token
                     },
                     body: JSON.stringify({
                         dictionary_id: config.dict_name,
@@ -139,7 +150,7 @@
                     finding.exceptionId = (await response.json()).response.id
                     finding.ignore = true
                 } else {
-                    throw response
+                    tryLogin(response)
                 }
                 
             }
@@ -150,7 +161,7 @@
                     method: 'POST',
                     headers: {
                         'content-type': 'application/json',
-                        'Authorization': 'Bearer ' + config.editor_token
+                        'Authorization': 'Bearer ' + editor_token
                     },
                     body: JSON.stringify({
                         id: finding.exceptionId
@@ -160,7 +171,7 @@
                     finding.exceptionId = null
                     finding.ignore = false
                 } else {
-                    throw response
+                    tryLogin(response)
                 }
             }
 
@@ -204,14 +215,14 @@
                     method: 'PATCH',
                     headers: {
                         "content-type": "application/json",
-                        'Authorization': 'Bearer ' + config.editor_token
+                        'Authorization': 'Bearer ' + editor_token
                     },
                     body: JSON.stringify(state)
                 })
                 if(stateResp.ok){
                     return await stateResp.json()
                 }else {
-                    throw stateResp
+                    tryLogin(stateResp)
                 }
             }
 

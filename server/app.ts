@@ -30,7 +30,7 @@ function isAuthorized(request: Request){
   const auth = request.headers.get('Authorization')
   if(auth){
     const [_, token] = auth.split('Bearer ')
-    return token.trim() === editor_token
+    return (token || '').trim() === editor_token
   }
 }
 
