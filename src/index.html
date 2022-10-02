@@ -14,6 +14,11 @@
                 .replace(/\/$/, '')
                 .replaceAll('-', ' ')
             const urlFilter = (url) => url.indexOf('societe-numerique.ch') === -1
+
+                        
+            async function fetchProxied(url, init){
+                return fetch(`${config.proxy_root}/proxy?url=${encodeURIComponent(url)}`, init)
+            }
         
             async function getArticleUrls(sitemapUrl){
                 const sitemapRes = await fetchProxied(sitemapUrl)
@@ -73,17 +78,15 @@
             }
 
             async function checkSpelling(text){
-                const key = config.key
-                const url = `https://api.textgears.com/spelling`
-                const spellRes = await fetch(url, {
+                const spellRes = await fetchProxied(`https://api.textgears.com/spelling`, {
                     method: 'POST',
                     headers: {
-                        'content-type': 'application/json'
+                        'content-type': 'application/json',
+                        'Authorization': 'Bearer ' + config.editor_token
                     },
                     body: JSON.stringify({
                         language: "de-CH",
                         dictionary_id: config.dict_name,
-                        key,
                         text
                     })
                 })
@@ -97,17 +100,14 @@
                     throw spellRes
                 }
             }
-            
-            async function fetchProxied(url, init){
-                return fetch(`${config.proxy_root}/proxy?url=${encodeURIComponent(url)}`, init)
-            }
-            
+
             async function createDictionary(name){
                 const response = await fetchProxied('https://api.textgears.com/custom/createdictionary',
                     {
                         method: 'POST',
                         headers: {
-                            'content-type': 'application/json'
+                            'content-type': 'application/json',
+                            'Authorization': 'Bearer ' + config.editor_token
                         },
                         body: JSON.stringify({
                             id: config.dict_name,
@@ -125,7 +125,8 @@
                 {
                     method: 'POST',
                     headers: {
-                        'content-type': 'application/json'
+                        'content-type': 'application/json',
+                        'Authorization': 'Bearer ' + config.editor_token
                     },
                     body: JSON.stringify({
                         dictionary_id: config.dict_name,
@@ -148,7 +149,8 @@
                 {
                     method: 'POST',
                     headers: {
-                        'content-type': 'application/json'
+                        'content-type': 'application/json',
+                        'Authorization': 'Bearer ' + config.editor_token
                     },
                     body: JSON.stringify({
                         id: finding.exceptionId
@@ -161,7 +163,7 @@
                     throw response
                 }
             }
-            //const errors = await checkSpelling(normalizedContent)
+
             /** error is: 
                 bad: "EDRi-Netzwerk"
                 better: Array(5) [ "DDR-Netzwerk", "Der-Netzwerk", "NDR-Netzwerk", … ]
@@ -201,7 +203,8 @@
                 const stateResp = await fetch(`${config.proxy_root}/gists/${config.gist_id}`, {
                     method: 'PATCH',
                     headers: {
-                        "content-type": "application/json"
+                        "content-type": "application/json",
+                        'Authorization': 'Bearer ' + config.editor_token
                     },
                     body: JSON.stringify(state)
                 })

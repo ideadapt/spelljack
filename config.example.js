@@ -4,5 +4,6 @@ export default {
     dict_title: "My Dictionary",
     allowed_origin_hosts: 'localhost,mydomain.com,www.mydomain.com',
     gh_gist_token: "ghp_...5rIZ3...",
-    gist_id: "...."
+    gist_id: "....",
+    editor_token: 'some secret',
 }
