@@ -13,7 +13,7 @@
     }
 
     .finding-context em {
-        text-decoration: underline;
+        text-decoration: underline dotted red;
         font-style: normal;
     }
 }

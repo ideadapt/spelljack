@@ -2,7 +2,7 @@ Ever wanted to comfortably check multiple articles for spelling errors and manag
 
 # Setup
 
-You must have Node and Deno installed on your machine.
+You must have Node >= 14 and Deno >= 1.26 installed on your machine.
 
 1. Generate a GitHub access token with gist scope: https://github.com/settings/tokens/new?scopes=gist.
    Set it in `config.gh_gist_token`
@@ -17,25 +17,16 @@ You must have Node and Deno installed on your machine.
 
 # Prod
 
-6. Only once: Set up a denoland project that connects to your repository. Add environment variables for: `key`, `editor_token`, `dict_name`, `gh_gist_token`, `allowed_origin_hosts` (comma separated list)
-7. Every time you push, the denoland project is deployed automagically.
-8. Set `config.proxy_root` to endpoint of deployed server, e.g. https://ideadapt-spelljack.deno.dev
-9. Build frontend project for prod usage: `npm run dist`
-10. Deploy dist directory to any static web host.
+6. Only once: Set up a denoland project that connects to your repository. 
+7. Only once: Add environment variables in denoland project settings for: 
+   `key`, `editor_token`, `dict_name`, `gh_gist_token`, `allowed_origin_hosts` (comma separated list)
+8. Every time you push, the denoland project is deployed automagically.
+9. Set `config.proxy_root` to endpoint of deployed server, e.g. https://ideadapt-spelljack.deno.dev
+10. Build frontend project for prod usage: `npm run dist`
+11. Deploy dist directory to any static web host.
 
 
 # What's Inside
-
-## Technology
-
-- Deno based API server using oak
-- Denon to restart server on source change
-- Alpine.js for DOM manipulation based on application state
-- Tailwind CSS for fuzzy feeling
-- Parcel for frontend dev and prod build
-- TextGears API for spell checking
-- GitHub gist API for storage
-- Some SVG
 
 ## Features
 
@@ -47,3 +38,14 @@ You must have Node and Deno installed on your machine.
 - Show context of misspelled word (e.g. the surrounding words)
 - Jump to article edit page
 - Ignore spelling error if it refers to a correctly spelled english word (Currently only german is supported as primary article language)
+
+## Technology
+
+- Deno based API server using oak
+- Denon to restart server on source change
+- Alpine.js for DOM manipulation based on application state
+- Tailwind CSS for fuzzy feeling
+- Parcel for frontend dev and prod build
+- TextGears API for spell checking
+- GitHub gist API for storage
+- Some SVG
