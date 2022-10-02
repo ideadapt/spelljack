@@ -447,7 +447,7 @@
                                         </a></td>
                                     </tr>
                                     <tr class="even:bg-white select-none" 
-                                        x-if="article.context.length > 0">
+                                        x-show="article.context.length > 0">
                                         <td colspan="3" 
                                             x-html="`${article.context}`"
                                             class="px-3 py-3 text-sm finding-context">
