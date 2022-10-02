@@ -37,6 +37,14 @@ function allowAll(context: Context){
 }
 
 router
+.get("/proxy", proxy((context: Context) => {
+  allowAll(context)
+  const target = context.request.url.searchParams.get('url') as string
+  console.log('target url', target)
+  return new URL(target)
+}))
+
+router
 .options('/proxy', allowAll)
 .post("/proxy", proxy((context: Context) => {
   const target = context.request.url.searchParams.get('url') as string
@@ -44,9 +52,6 @@ router
   return new URL(target)
 }, {
   proxyReqInitDecorator(proxyReqOpts, srcReq: Request) {
-    console.log(srcReq);
-    console.log(proxyReqOpts.body)
-
     const target = new URL(srcReq.url.searchParams.get('url') as string)
 
     if(target.hostname === 'api.textgears.com'){
@@ -85,7 +90,7 @@ router
 .patch('/gists/:gist_id', async (context) => {
   console.log('PATCH gist')
   
-  const state = context.request.body({ type: 'json'})
+  const state = await context.request.body({ type: 'json'}).value
   await octokit.request(`PATCH /gists/${context.params.gist_id}`, {
     gist_id: context.params.gist_id,
     description: 'spelljack-db-' + dict_name,
@@ -97,6 +102,7 @@ router
   allowAll(context)
   context.response.headers.set('Content-Type', 'application/json')
   context.response.status = Status.OK
+  context.response.body = JSON.stringify("{}")
 })
 
 app.use(router.routes())

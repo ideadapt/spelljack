@@ -16,10 +16,9 @@
             const urlFilter = (url) => url.indexOf('societe-numerique.ch') === -1
         
             async function getArticleUrls(sitemapUrl){
-                // const sitemapRes = await fetch(`https://ideadapt.net/proxy/get?url=${encodeURIComponent(sitemapUrl)}`)
-                const sitemapRes = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(sitemapUrl)}&rand=${Math.random()}`)
+                const sitemapRes = await fetchProxied(sitemapUrl)
                 if(sitemapRes.ok){
-                    const xml = JSON.parse(await sitemapRes.text()).contents
+                    const xml = await sitemapRes.text()
                     const parser = new DOMParser()
                     const xmlDoc = parser.parseFromString(xml, "text/xml")
                     return [...xmlDoc.querySelectorAll("loc")].map(el => el.textContent).slice(1).filter(urlFilter)
@@ -29,9 +28,9 @@
             }
 
             async function extractArticleData(articleUrl){
-                const articleRes = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(articleUrl)}&rand=${Math.random()}`)
+                const articleRes = await fetchProxied(articleUrl)
                 if(articleRes.ok){
-                    const xml = JSON.parse(await articleRes.text()).contents
+                    const xml = await articleRes.text()
                     const parser = new DOMParser()
                     const xmlDoc = parser.parseFromString(xml, "text/html")
                     return {
@@ -148,6 +147,9 @@
                 const response = await fetchProxied(`https://api.textgears.com/custom/deleteexception`, 
                 {
                     method: 'POST',
+                    headers: {
+                        'content-type': 'application/json'
+                    },
                     body: JSON.stringify({
                         id: finding.exceptionId
                     })
@@ -198,6 +200,9 @@
             async function storeState(state){
                 const stateResp = await fetch(`${config.proxy_root}/gists/${config.gist_id}`, {
                     method: 'PATCH',
+                    headers: {
+                        "content-type": "application/json"
+                    },
                     body: JSON.stringify(state)
                 })
                 if(stateResp.ok){
@@ -221,7 +226,6 @@
 
             // TODO 
             // - selected states are not handled very clean, depending on the workflow
-            // - consider a very small reverse proxy server that just sets secret parameters in requests (e.g. textgears key)
 
             window.spelljackApp = function(){
                 return {
