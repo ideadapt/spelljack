@@ -1,8 +1,8 @@
+# Spelljack
+
 Ever wanted to comfortably check multiple articles for spelling errors and manage those errors in one place?
 
-<p style="text-align: center">
 <img src="https://github.com/ideadapt/spelljack/raw/main/doc/screenshot.png" width="300">
-</p>
 
 # Setup
 
