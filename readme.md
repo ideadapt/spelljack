@@ -8,7 +8,7 @@ You must have Node >= 14 and Deno >= 1.26 installed on your machine.
    Set it in `config.gh_gist_token`
 2. Create a secret gist with any file in it. Set its id in `config.gist_id`
 3. Set TextGears API key in `config.key`. Set other textgears properties: 
-   `dict_name` (only [a-z_-]), `dict_title`, `editor_token` (required for write operations, e.g. spell check or ignore)
+   `dict_name` (only [a-z_-]), `dict_title`, `editor_token` (user is prompted to enter that, once a write operation is triggered, e.g. spell check or ignore)
 
 # Dev
 
@@ -38,6 +38,7 @@ You must have Node >= 14 and Deno >= 1.26 installed on your machine.
 - Show context of misspelled word (e.g. the surrounding words)
 - Jump to article edit page
 - Ignore spelling error if it refers to a correctly spelled english word (Currently only german is supported as primary article language)
+- Write operations protected via user provided password (see editor_token)
 
 ## Technology
 
@@ -49,3 +50,12 @@ You must have Node >= 14 and Deno >= 1.26 installed on your machine.
 - TextGears API for spell checking
 - GitHub gist API for storage
 - Some SVG
+
+
+# What more?
+
+- Less spaghetti code
+- Parcel with optimized prod build
+- Support multiple editor_tokens (e.g. one per author / role)
+- Support article sources other than wordpress blog posts
+- Some better UX here and there
