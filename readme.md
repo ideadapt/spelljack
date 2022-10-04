@@ -14,12 +14,12 @@ You must have Node >= 14 and Deno >= 1.26 installed on your machine.
 3. Set TextGears API key in `config.key`. Set other textgears properties: 
    `dict_name` (only [a-z_-]), `dict_title`, `editor_token` (user is prompted to enter that, once a write operation is triggered, e.g. spell check or ignore)
 
-# Dev
+## Dev
 
 4. Start server `npm run server:dev`
 5. Start frontend `npm run dev`
 
-# Prod
+## Prod
 
 6. Only once: Set up a denoland project that connects to your repository. 
 7. Only once: Add environment variables in denoland project settings for: 

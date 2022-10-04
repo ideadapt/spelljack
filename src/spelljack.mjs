@@ -5,7 +5,6 @@
  *  (e.g. a word has been found in a past scan, in the mean time the article was updated / fixed, 
  *  => the current rescan does not find that same word anymore.
  *  Hence that existing finding must be updated to not include that article anymore as ref)
- * an existing finding is deleted, if has no more refs
 */
 export function mergeFindings(findings, existingFindings){
     const newFindings = new Set(findings)
