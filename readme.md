@@ -58,8 +58,6 @@ You must have Node >= 14 and Deno >= 1.26 installed on your machine.
 
 # What more?
 
-- Less spaghetti code
-- Parcel with optimized prod build
 - Support multiple editor_tokens (e.g. one per author / role)
 - Support article sources other than wordpress blog posts
 - Some better UX here and there
