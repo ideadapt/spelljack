@@ -9,7 +9,7 @@ async function getConfig(key: string): Promise<string>{
   const envVal = Deno.env.get(key)
   
   if(!envVal){
-    const config = (await import('../config.js')).default as Record<string, unknown>
+    const config = (await import('./config.js')).default as Record<string, unknown>
     return config[key] as string 
   }
   console.log(`env: ${key}=${envVal}`)
