@@ -2,7 +2,7 @@ import { Status } from "https://deno.land/std@0.153.0/http/http_status.ts";
 import { Application, Context, Request, Response, Router } from "https://deno.land/x/oak@v11.1.0/mod.ts";
 import { proxy } from "https://deno.land/x/oak_http_proxy@2.1.0/mod.ts";
 // docs https://deno.land/x/oak_http_proxy@2.1.0
-import { Octokit } from "https://cdn.skypack.dev/octokit?dts";
+import { Octokit } from "https://cdn.skypack.dev/octokit";
 
 
 async function getConfig(key: string): Promise<string>{
