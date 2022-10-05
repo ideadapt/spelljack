@@ -50,9 +50,7 @@
                     const parser = new DOMParser()
                     const xmlDoc = parser.parseFromString(xml, "text/html")
                     return {
-                        title: xmlDoc.querySelector(".main .entry-title").innerText,
                         html: xmlDoc.querySelector(".main .entry-content").innerHTML,
-                        date: xmlDoc.querySelector(".main .entry-meta time").getAttribute('datetime'),
                         id: xmlDoc.querySelector('link[rel=shortlink]').getAttribute('href').match(/p=(\d+)/)[1] || 'no-id',
                     }
                 }else{
