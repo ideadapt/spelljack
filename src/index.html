@@ -299,25 +299,31 @@
                         return findings
                     },
                     async scanSelected(){
-                        this.scanning = true
-                        for(const a of this.articles.filter(a => a.selected)){
-                            const findings = await this.scan(a)
-                            a.checks.push({ date: new Date()})                            
-                            this.findings = mergeFindings(findings, this.findings)
+                        const selectedArticles = this.articles.filter(a => a.selected)
+                        if(selectedArticles.length > 0){
+                            this.scanning = true
+                            for(const a of selectedArticles){
+                                const findings = await this.scan(a)
+                                a.checks.push({ date: new Date()})                            
+                                this.findings = mergeFindings(findings, this.findings)
+                            }
+                            this.scanning = false
+                            store({findings: this.findings, articles: this.articles})
                         }
-                        this.scanning = false
-                        store({findings: this.findings, articles: this.articles})
                     },
                     async toggleIgnoreSelected(){
-                        for(const f of this.findings.filter(f => f.selected)) {
-                            if(f.ignore){
-                                await unIgnoreFinding(f)
-                            }else{
-                                await ignoreFinding(f)
+                        const selectedFindings = this.findings.filter(f => f.selected)
+                        if(selectedFindings.length > 0){
+                            for(const f of selectedFindings) {
+                                if(f.ignore){
+                                    await unIgnoreFinding(f)
+                                }else{
+                                    await ignoreFinding(f)
+                                }
+                                f.selected = false
                             }
-                            f.selected = false
+                            store({ findings: this.findings })
                         }
-                        store({ findings: this.findings })
                     },
                     lastCheckLabel(article){
                         if(article.checks && article.checks.length > 0){
