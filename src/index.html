@@ -8,19 +8,19 @@
             import config from '/config.js'
             import {mergeFindings} from './spelljack.mjs'
 
-            let editor_token = localStorage.getItem('digiges_editor_token') || ''
+            let editor_password = localStorage.getItem('spelljack_editor_password') || ''
             
-            const sitemapUrl = 'https://www.digitale-gesellschaft.ch/sitemaps/post-sitemap1.xml'
-            const urlToTitle = url => url
-                .replace(/https:\/\/www.(digitale-gesellschaft|societe-numerique).ch\/\d\d\d\d\/\d\d\/\d\d\//, '')
+            const sitemapUrl = config.sitemap_url
+            const urlToTitle = config.urlToTitle || (url => new URL(url).pathname
+                .replace(/\/\d\d\d\d\/\d\d\/\d\d\//, '')
                 .replace(/\/$/, '')
-                .replaceAll('-', ' ')
-            const urlFilter = (url) => url.indexOf('societe-numerique.ch') === -1
+                .replaceAll('-', ' '))
+            const urlFilter = config.urlFilter || ((sitemapUrl, url) => new URL(url).hostname === new URL(sitemapUrl).hostname)
 
             function tryLogin(response, reload = false){
                 if(response.status === 401){
-                    editor_token = prompt('Enter editor token (try again afterwards)')
-                    localStorage.setItem('digiges_editor_token', editor_token)
+                    editor_password = prompt('Enter editor password (try again afterwards)')
+                    localStorage.setItem('spelljack_editor_password', editor_password)
                     if(reload === true) location.reload()
                 }else {
                     throw response
@@ -37,7 +37,7 @@
                     const xml = await sitemapRes.text()
                     const parser = new DOMParser()
                     const xmlDoc = parser.parseFromString(xml, "text/xml")
-                    return [...xmlDoc.querySelectorAll("loc")].map(el => el.textContent).slice(1).filter(urlFilter)
+                    return [...xmlDoc.querySelectorAll("loc")].map(el => el.textContent).slice(1).filter(url => urlFilter(sitemapUrl, url))
                 }else{
                     throw sitemapRes
                 }
@@ -93,7 +93,7 @@
                     method: 'POST',
                     headers: {
                         'content-type': 'application/json',
-                        'Authorization': 'Bearer ' + editor_token
+                        'Authorization': 'Bearer ' + editor_password
                     },
                     body: JSON.stringify({
                         language: "de-CH",
@@ -118,7 +118,7 @@
                         method: 'POST',
                         headers: {
                             'content-type': 'application/json',
-                            'Authorization': 'Bearer ' + editor_token
+                            'Authorization': 'Bearer ' + editor_password
                         },
                         body: JSON.stringify({
                             id: config.dict_name,
@@ -137,7 +137,7 @@
                     method: 'POST',
                     headers: {
                         'content-type': 'application/json',
-                        'Authorization': 'Bearer ' + editor_token
+                        'Authorization': 'Bearer ' + editor_password
                     },
                     body: JSON.stringify({
                         dictionary_id: config.dict_name,
@@ -161,7 +161,7 @@
                     method: 'POST',
                     headers: {
                         'content-type': 'application/json',
-                        'Authorization': 'Bearer ' + editor_token
+                        'Authorization': 'Bearer ' + editor_password
                     },
                     body: JSON.stringify({
                         id: finding.exceptionId
@@ -215,7 +215,7 @@
                     method: 'PATCH',
                     headers: {
                         "content-type": "application/json",
-                        'Authorization': 'Bearer ' + editor_token
+                        'Authorization': 'Bearer ' + editor_password
                     },
                     body: JSON.stringify(state)
                 })
@@ -237,9 +237,6 @@
                 }
                 await storeState(state)
             }
-
-            // TODO 
-            // - selected states are not handled very clean, depending on the workflow
 
             window.spelljackApp = function(){
                 return {

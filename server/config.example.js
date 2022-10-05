@@ -3,5 +3,5 @@ export default {
     dict_name: "mydict",
     allowed_origin_hosts: 'localhost,mydomain.com,www.mydomain.com',
     gh_gist_token: "ghp_...5rIZ3...",
-    editor_token: 'some secret',
+    editor_password: 'some secret',
 }

@@ -20,7 +20,7 @@ const allowedOriginHosts = (await getConfig('allowed_origin_hosts')).split(',')
 const gh_gist_token = await getConfig('gh_gist_token')
 const key = await getConfig('key')
 const dict_name = await getConfig('dict_name')
-const editor_token = await getConfig('editor_token')
+const editor_password = await getConfig('editor_password')
 
 const app = new Application()
 const router = new Router()
@@ -32,7 +32,7 @@ function isAuthorized(request: Request){
     const [_, token] = auth.split('Bearer ')
     const normalizedToken = (token || '').trim()
     console.log('Authorization token', normalizedToken.substring(0, Math.min(normalizedToken.length, 5)));
-    return normalizedToken === editor_token
+    return normalizedToken === editor_password
   }
 }
 
