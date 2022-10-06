@@ -10,7 +10,7 @@
 
             let editor_password = localStorage.getItem('spelljack_editor_password') || ''
             
-            const sitemapUrl = config.sitemap_url
+            const sitemapUrls = config.sitemap_urls
             const urlToTitle = config.urlToTitle || (url => new URL(url).pathname
                 .replace(/\/\d\d\d\d\/\d\d\/\d\d\//, '')
                 .replace(/\/$/, '')
@@ -31,13 +31,18 @@
                 return fetch(`${config.proxy_root}/proxy?url=${encodeURIComponent(url)}`, init)
             }
         
-            async function getArticleUrls(sitemapUrl){
+            async function getArticles(sitemapUrl){
                 const sitemapRes = await fetchProxied(sitemapUrl)
                 if(sitemapRes.ok){
                     const xml = await sitemapRes.text()
                     const parser = new DOMParser()
                     const xmlDoc = parser.parseFromString(xml, "text/xml")
-                    return [...xmlDoc.querySelectorAll("loc")].map(el => el.textContent).slice(1).filter(url => urlFilter(sitemapUrl, url))
+                    return [...xmlDoc.querySelectorAll("url")]
+                            .slice(1)
+                            .map(el => ({
+                                url: el.querySelector('loc').textContent, 
+                                lastmod: el.querySelector('lastmod').textContent }))
+                            .filter(({url}) => urlFilter(sitemapUrl, url))
                 }else{
                     throw sitemapRes
                 }
@@ -75,14 +80,15 @@
                 return decodeHTMLEntities(noColon)
             }
 
-            function createArticleFromUrl(url){
+            function createArticle(articleData){
                 return {
-                    url,
-                    editUrl: url,
-                    title: urlToTitle(url),
-                    checks: [],
-                    selected: false,
-                    context: ''
+                    url: articleData.url,
+                    lastmod: articleData.lastmod,
+                    editUrl: articleData.editUrl || articleData.url,
+                    title: articleData.title || urlToTitle(articleData.url),
+                    checks: articleData.checks || [],
+                    selected: articleData.selected || false,
+                    context: articleData.context || ''
                 }
             }
 
@@ -226,12 +232,17 @@
 
             async function store(partialState){
                 const state = await loadState() 
-                // TODO ovewrite stored data for now / simplicity (i.e. not multi user friendly)
                 if(partialState.findings){
-                    state.findings = partialState.findings.map(f => ({...f, selected: false}))
+                    state.findings = partialState.findings.map(f => {
+                        const { selected, ...keep} = f
+                        return keep
+                    })
                 }
                 if(partialState.articles){
-                    state.articles = partialState.articles.map(f => ({...f, selected: false, context: ''}))
+                    state.articles = partialState.articles.map(a => {
+                        const { context, selected, title, ...keep} = a
+                        return keep
+                    })
                 }
                 await storeState(state)
             }
@@ -258,25 +269,29 @@
                             this.findingsLoading = false
 
                             if(articles.length === 0){
-                                return getArticleUrls(sitemapUrl).then(urls => {
-                                    this.articles = urls.map(url => createArticleFromUrl(url))
+                                return Promise.all(sitemapUrls.map(getArticles)).then(sitemapsArticles => {
+                                    for(const sitemapArticles of sitemapsArticles){
+                                        this.articles.push(...sitemapArticles.map(createArticle))
+                                    }
                                     this.articlesLoading = false
                                     store({ articles: this.articles })
                                 })
                             }else{
-                                this.articles = articles
+                                this.articles = articles.map(createArticle)
 
-                                getArticleUrls(sitemapUrl).then(sitemapUrls => {
-                                    const articleUrls = this.articles.map(a => a.url)
-                                    const countBefore = this.articles.length
-                                    sitemapUrls.some(sitemapUrl => {
-                                        if(articleUrls.includes(sitemapUrl)){
-                                            return true
-                                        }
-                                        this.articles.unshift(createArticleFromUrl(sitemapUrl))
-                                    })
-                                    return countBefore < this.articles.length
-                                }).then(hasNew => {
+                                const existingArticleUrls = this.articles.map(a => a.url)
+                                const countBefore = this.articles.length
+
+                                return Promise.all(sitemapUrls.map(getArticles)).then(sitemapsArticles => {
+                                    for(const sitemapArticles of sitemapsArticles){
+                                        sitemapArticles.some(sitemapArticle => {
+                                            if(existingArticleUrls.includes(sitemapArticle.url)){
+                                                return true
+                                            }
+                                            this.articles.unshift(createArticle(sitemapArticle))
+                                        })
+                                    }
+                                    const hasNew = countBefore < this.articles.length
                                     this.articlesLoading = false
                                     if(hasNew) {
                                         store({ articles: this.articles })
@@ -323,10 +338,13 @@
                             store({ findings: this.findings })
                         }
                     },
+                    dateLabel(date){
+                        const d = new Date(date)
+                        return `${d.getDate()}.${d.getMonth()+1}.${d.getFullYear()-2000} ${d.getHours()}:${d.getMinutes()}`
+                    },
                     lastCheckLabel(article){
                         if(article.checks && article.checks.length > 0){
-                            const date = new Date(article.checks[article.checks.length-1].date)
-                            return `${date.getDate()}.${date.getMonth()+1}.${date.getFullYear()-2000} ${date.getHours()}:${date.getMinutes()}`
+                            return this.dateLabel(article.checks[article.checks.length-1].date)
                         }else{
                             return 'never'
                         }
@@ -368,7 +386,9 @@
                                 selectedFindings.some(f => f.refs.some(({url: urlToSelect}) => a.url === urlToSelect))
                             ))
                             || !this.filterArticlesBySelectedFindings)
-                        ).slice((page-1) * this.pageSize, page * this.pageSize)
+                        )
+                        .sort((a, b) => new Date(b.lastmod) - new Date(a.lastmod))
+                        .slice((page-1) * this.pageSize, page * this.pageSize)
                     },
                 }
             }
@@ -419,7 +439,7 @@
                     </button>
                     <x-toggle-button text="Filter finding" x-model="filterFindingsBySelectedArticles"></x-toggle-button>
                 </div>
-                <div class="shadow-md relative" style="height: calc(100vh - 9rem)">
+                <div class="shadow-lg relative" style="height: calc(100vh - 9rem)">
                     <div class="absolute right-0 z-50 opacity-50 hover:opacity-100 font-bold" style="top: -25px;">
                         <button x-on:click="page = Math.max(page-1, 1)" style="
                         border-top-right-radius: 0;
@@ -435,6 +455,12 @@
                             </path>
                         </svg>
                         <table class="w-full">
+                            <thead>
+                                <th class="text-xs font-normal text-left px-3 py-1">Title</th>
+                                <th class="text-xs font-normal text-left px-3 py-1">Modified</th>
+                                <th class="text-xs font-normal text-left px-3 py-1">Checked</th>
+                                <th class="text-xs font-normal text-left px-3 py-1">&nbsp;</th>
+                            </thead>
                             <template x-for="article in filteredArticles" :key="article.url">
                                 <tbody>
                                     <tr class="odd:bg-slate-50 even:bg-white select-none hover:cursor-pointer hover:bg-slate-100 border-b-2 border-b-white" 
@@ -442,14 +468,15 @@
                                         x-on:click="article.selected = !article.selected">
                                         <td x-text="`${article.title}`"
                                             class="px-3 py-3 max-w-prose truncate"></td>
-                                        <td x-text="`${lastCheckLabel(article)}`" class="px-3 py-3 text-xs"></td>
+                                        <td x-text="`${dateLabel(article.lastmod)}`" class="px-3 py-3 text-xs whitespace-nowrap"></td>
+                                        <td x-text="`${lastCheckLabel(article)}`" class="px-3 py-3 text-xs whitespace-nowrap"></td>
                                         <td class="p-3"><a :href="article.editUrl" target="_blank" class="hover:stroke-amber-700 stroke-slate-500">
                                             <svg xmlns="http://www.w3.org/2000/svg" style="transform: scale(0.75)" width="20" height="20"><path fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11v6a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6M13 1h6v6M8 12 19 1"/></svg>
                                         </a></td>
                                     </tr>
                                     <tr class="even:bg-white select-none" 
                                         x-show="article.context.length > 0">
-                                        <td colspan="3" 
+                                        <td colspan="4" 
                                             x-html="`${article.context}`"
                                             class="px-3 py-3 text-sm finding-context">
                                         </td>
@@ -467,7 +494,7 @@
                     <x-toggle-button text="Show ignored" x-model="showIgnored"></x-toggle-button>
                     <x-toggle-button text="Filter articles" x-model="filterArticlesBySelectedFindings"></x-toggle-button>
                 </div>
-                <div class="overflow-y-scroll shadow-md w-full" style="height: calc(100vh - 9rem)">
+                <div class="overflow-y-scroll shadow-lg w-full" style="height: calc(100vh - 9rem)">
                     <svg x-show="findingsLoading" class="stroke-amber-700" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="margin:auto;background:transparent;display:block;" width="100px" height="100px" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid">
                         <path fill="none" stroke-width="8" stroke-dasharray="42.76482137044271 42.76482137044271" d="M24.3 30C11.4 30 5 43.3 5 50s6.4 20 19.3 20c19.3 0 32.1-40 51.4-40 C88.6 30 95 43.3 95 50s-6.4 20-19.3 20C56.4 70 43.6 30 24.3 30z" stroke-linecap="round" style="transform:scale(0.8);transform-origin:50px 50px">
                           <animate attributeName="stroke-dashoffset" repeatCount="indefinite" dur="7.142857142857142s" keyTimes="0;1" values="0;256.58892822265625"></animate>

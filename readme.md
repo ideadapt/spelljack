@@ -14,7 +14,7 @@ You must have Node >= 14 and Deno >= 1.26 installed on your machine.
 1. Set TextGears API key in server config `key`. Set other textgears properties: 
    `dict_name` (only [a-z_-], server and frontend config), `dict_title` (frontend config)
 1. Set an `editor_password` (user is prompted to enter that, once a write operation is triggered, e.g. "Check spelling" or "ignore") in the server config.
-1. Set the `sitemap_url` in frontend config.
+1. Set the `sitemap_urls` in frontend config.
 1. If required, define `urlToTitle` in frontend config.
 1. If required, define `urlFilter` in frontend config.
 
