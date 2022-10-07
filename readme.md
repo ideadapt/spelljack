@@ -37,7 +37,7 @@ Alternatively: Instead of deploying to denoland, you can always compile your own
 
 `deno compile --allow-read --allow-net --allow-env ./main.ts`
 
-## Docker build
+## Docker
 
 Use docker to create an image that exposes one port, that serves the static files as well as the API (no cors curse no more).
 
@@ -45,7 +45,7 @@ Use docker to create an image that exposes one port, that serves the static file
 npm run docker:build
 
 # now run with e.g.:
-docker run --name spelljack --rm --env-file=server/.env -p3000:3000 spelljack:1
+docker run --name spelljack --rm --env-file=server/.env -p3000:3000 spelljack:1.0.0
 ```
 
 
