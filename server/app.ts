@@ -1,26 +1,24 @@
 import { Status } from "https://deno.land/std@0.153.0/http/http_status.ts";
 import { Application, Context, Request, Response, Router } from "https://deno.land/x/oak@v11.1.0/mod.ts";
 import { proxy } from "https://deno.land/x/oak_http_proxy@2.1.0/mod.ts";
-// docs https://deno.land/x/oak_http_proxy@2.1.0
 import { Octokit } from "https://cdn.skypack.dev/octokit";
+import { config } from "https://deno.land/x/dotenv@v3.2.0/mod.ts";
 
 
-async function getConfig(key: string): Promise<string>{
-  const envVal = Deno.env.get(key)
-  
+function getConfig(key: string): string{
+  let envVal = Deno.env.get(key)
   if(!envVal){
-    const config = (await import('./config.js')).default as Record<string, unknown>
-    return config[key] as string 
+    envVal = config()[key]
   }
   console.log(`env: ${key}=${envVal}`)
   return envVal
 }
 
-const allowedOriginHosts = (await getConfig('allowed_origin_hosts')).split(',')
-const gh_gist_token = await getConfig('gh_gist_token')
-const key = await getConfig('key')
-const dict_name = await getConfig('dict_name')
-const editor_password = await getConfig('editor_password')
+const allowedOriginHosts = getConfig('allowed_origin_hosts').split(',')
+const gh_gist_token = getConfig('gh_gist_token')
+const key = getConfig('key')
+const dict_name = getConfig('dict_name')
+const editor_password = getConfig('editor_password')
 
 const app = new Application()
 const router = new Router()
@@ -132,7 +130,18 @@ router
   response.body = JSON.stringify("{}")
 })
 
+
 app.use(router.routes())
+app.use(async (context, next)=> {
+  try{
+    await context.send({
+      root: `${Deno.cwd()}/dist`,
+      index: 'index.html'
+    })
+  }catch(_){
+    await next()
+  }
+})
 app.use(router.allowedMethods())
 
 export default app

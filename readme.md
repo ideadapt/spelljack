@@ -9,11 +9,11 @@ Ever wanted to comfortably check multiple articles for spelling errors and manag
 You must have Node >= 14 and Deno >= 1.26 installed on your machine.
 
 1. Generate a GitHub access token with gist scope: https://github.com/settings/tokens/new?scopes=gist.
-   Set it in server config `gh_gist_token`.
-1. Create a secret gist with any file in it. Set its id in server config `gist_id`.
-1. Set TextGears API key in server config `key`. Set other textgears properties: 
+   Set it in server env config `gh_gist_token`.
+1. Create a secret gist with any file in it. Set its id in server env config `gist_id`.
+1. Set TextGears API key in server env config `key`. Set other textgears properties: 
    `dict_name` (only [a-z_-], server and frontend config), `dict_title` (frontend config)
-1. Set an `editor_password` (user is prompted to enter that, once a write operation is triggered, e.g. "Check spelling" or "ignore") in the server config.
+1. Set an `editor_password` (user is prompted to enter that, once a write operation is triggered, e.g. "Check spelling" or "ignore") in the server env config.
 1. Set the `sitemap_urls` in frontend config.
 1. If required, define `urlToTitle` in frontend config.
 1. If required, define `urlFilter` in frontend config.
@@ -36,6 +36,17 @@ You must have Node >= 14 and Deno >= 1.26 installed on your machine.
 Alternatively: Instead of deploying to denoland, you can always compile your own binary and let it run anywhere:
 
 `deno compile --allow-read --allow-net --allow-env ./main.ts`
+
+## Docker build
+
+Use docker to create an image that exposes one port, that serves the static files as well as the API (no cors curse no more).
+
+```
+npm run docker:build
+
+# now run with e.g.:
+docker run --name spelljack --rm --env-file=server/.env -p3000:3000 spelljack:1
+```
 
 
 # What's Inside

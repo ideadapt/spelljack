@@ -1,5 +1,5 @@
 node_modules/
 /config.js
-server/config.js
+server/.env
 .parcel-cache/
 dist/
