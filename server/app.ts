@@ -35,13 +35,16 @@ function isAuthorized(request: Request){
 }
 
 function applyCorsHeaders(response: Response, request: Request){
-  const originUrl = new URL(request.headers.get('origin') as string)
-  if(allowedOriginHosts.includes(originUrl.hostname)){
-    const origin = originUrl.origin
-    response.headers.set('Access-Control-Allow-Origin', origin)
+  const origin = request.headers.get('origin') as string
+  if(origin){
+    const originUrl = new URL(origin)
+    if(allowedOriginHosts.includes(originUrl.hostname)){
+      const origin = originUrl.origin
+      response.headers.set('Access-Control-Allow-Origin', origin)
+    }
+    response.headers.set('Access-Control-Allow-Methods', 'OPTIONS, PATCH, POST, GET')
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
   }
-  response.headers.set('Access-Control-Allow-Methods', 'OPTIONS, PATCH, POST, GET')
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
   response.status = Status.OK
 }
 
@@ -135,7 +138,7 @@ app.use(router.routes())
 app.use(async (context, next)=> {
   try{
     await context.send({
-      root: `${Deno.cwd()}/dist`,
+      root: `${Deno.cwd()}/../dist`,
       index: 'index.html'
     })
   }catch(_){
