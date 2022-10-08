@@ -3,11 +3,15 @@
   "version": "1.0.0",
   "description": "Comfortably check multiple wordpress articles for spelling errors and manage those errors in one place",
   "scripts": {
-    "server": "cd server && deno run --allow-net --allow-env --allow-read ./main.ts",
-    "server:dev": "cd server && denon run --allow-net --allow-env --allow-read ./main.ts",
+    "server": "deno run --allow-net --allow-env --allow-read ./server/main.ts",
+    "server:dev": "denon run --allow-net --allow-env --allow-read ./server/main.ts",
     "dev": "rm -rf dist/*.* && npx parcel src/index.html --open",
     "dist": "rm -rf dist/*.* && npx parcel build src/index.html --public-url ./",
-    "docker:build": "docker build --no-cache -t spelljack:1.0.0 .",
+    "docker:build": "docker build --no-cache -t ideadapt/spelljack:1.0.0 .",
+    "docker:push": "docker push ideadapt/spelljack:1.0.0",
+    "fly:secrets": "cat server/.env | flyctl secrets import",
+    "fly:deploy": "flyctl deploy",
+    "docker:deploy": "npm run dist && npm run docker:build && npm run docker:push && npm run fly:deploy",
     "test": "npx mocha test/*.mjs",
     "test:watch": "nodemon --watch test --watch src --exec mocha test/*.mjs"
   },

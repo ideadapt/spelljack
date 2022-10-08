@@ -26,16 +26,11 @@ You must have Node >= 14 and Deno >= 1.26 installed on your machine.
 ## Prod
 
 1. Only once: Set up a denoland project that connects to your repository. 
-1. Only once: Add environment variables in denoland project settings for: 
-   `key`, `editor_password`, `dict_name`, `gh_gist_token`, `allowed_origin_hosts` (comma separated list)
+1. Only once: Add environment variables defined locally in server env confing in denoland project settings.
 1. Every time you push, the denoland project is deployed automagically.
 1. Set frontend config `proxy_root` to endpoint of deployed server, e.g. https://ideadapt-spelljack.deno.dev
 1. Build frontend project for prod usage: `npm run dist`
 1. Deploy dist directory to any static web host.
-
-Alternatively: Instead of deploying to denoland, you can always compile your own binary and let it run anywhere:
-
-`deno compile --allow-read --allow-net --allow-env ./main.ts`
 
 ## Docker
 
@@ -45,7 +40,7 @@ Use docker to create an image that exposes one port, that serves the static file
 npm run docker:build
 
 # now run with e.g.:
-docker run --name spelljack --rm --env-file=server/.env -p3000:3000 spelljack:1.0.0
+docker run --name spelljack --rm --env-file=server/.env -p3000:3000 ideadapt/spelljack:1.0.0
 ```
 
 
@@ -73,6 +68,7 @@ docker run --name spelljack --rm --env-file=server/.env -p3000:3000 spelljack:1.
 - TextGears API for spell checking
 - GitHub gist API for storage
 - Some SVG
+- Docker for all in one deployment
 
 
 # What more?
