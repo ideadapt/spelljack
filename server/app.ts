@@ -8,7 +8,7 @@ import { config } from "https://deno.land/x/dotenv@v3.2.0/mod.ts";
 function getConfig(key: string): string{
   let envVal = Deno.env.get(key)
   if(!envVal){
-    envVal = config()[key]
+    envVal = config({ path: `${Deno.cwd()}/server/.env` })[key]
   }
   console.log(`env: ${key}=${envVal}`)
   return envVal
@@ -138,7 +138,7 @@ app.use(router.routes())
 app.use(async (context, next)=> {
   try{
     await context.send({
-      root: `${Deno.cwd()}/../dist`,
+      root: `${Deno.cwd()}/dist`,
       index: 'index.html'
     })
   }catch(_){
