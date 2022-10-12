@@ -81,7 +81,7 @@
                 return decodeHTMLEntities(noColon)
             }
 
-            function createArticle(articleData){
+            function createArticle(articleData, filteredFindings){
                 return {
                     url: articleData.url,
                     lastmod: articleData.lastmod,
@@ -89,7 +89,13 @@
                     title: articleData.title || urlToTitle(articleData.url),
                     checks: articleData.checks || [],
                     selected: articleData.selected || false,
-                    context: articleData.context || ''
+                    get context(){
+                        let contexts = []
+                        filteredFindings.filter(f => f.selected).forEach(f => {
+                            contexts.push(...f.refs.filter(r => r.url === articleData.url).map(r => r.context))
+                        })
+                        return contexts.join('<br/>')
+                    }
                 }
             }
 
@@ -248,6 +254,9 @@
                 await storeState(state)
             }
 
+            // TODO
+            // clean up findings: remove english words, remove umlaute-leftovers
+
             window.spelljackApp = function(){
                 return {
                     articles: [],
@@ -272,13 +281,13 @@
                             if(articles.length === 0){
                                 return Promise.all(sitemapUrls.map(getArticles)).then(sitemapsArticles => {
                                     for(const sitemapArticles of sitemapsArticles){
-                                        this.articles.push(...sitemapArticles.map(createArticle))
+                                        this.articles.push(...sitemapArticles.map(a => createArticle(a, this.filteredFindings)))
                                     }
                                     this.articlesLoading = false
                                     store({ articles: this.articles })
                                 })
                             }else{
-                                this.articles = articles.map(createArticle)
+                                this.articles = articles.map(a => createArticle(a, this.filteredFindings))
 
                                 const existingArticleUrls = this.articles.map(a => a.url)
                                 const countBefore = this.articles.length
@@ -289,7 +298,7 @@
                                             if(existingArticleUrls.includes(sitemapArticle.url)){
                                                 return true
                                             }
-                                            this.articles.unshift(createArticle(sitemapArticle))
+                                            this.articles.unshift(createArticle(sitemapArticle, this.filteredFindings))
                                         })
                                     }
                                     const hasNew = countBefore < this.articles.length
@@ -349,16 +358,6 @@
                         }else{
                             return 'never'
                         }
-                    },
-                    toggleShowContext(finding){
-                        finding.refs.forEach(r => {
-                            this.filteredArticles.some(a => {
-                                if(a.url === r.url){
-                                    a.context = finding.selected ? (r.context || 'No context. Run spell check again and reselect word.') : ''
-                                    return true
-                                }
-                            })
-                        })
                     },
                     get nrOfSelectedArticles(){
                         return this.articles.filter(a => a.selected).length
@@ -471,9 +470,11 @@
                                             class="px-3 py-3 max-w-prose truncate"></td>
                                         <td x-text="`${dateLabel(article.lastmod)}`" class="px-3 py-3 text-xs whitespace-nowrap"></td>
                                         <td x-text="`${lastCheckLabel(article)}`" class="px-3 py-3 text-xs whitespace-nowrap"></td>
-                                        <td class="p-3"><a :href="article.editUrl" target="_blank" class="hover:stroke-amber-700 stroke-slate-500">
-                                            <svg xmlns="http://www.w3.org/2000/svg" style="transform: scale(0.75)" width="20" height="20"><path fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11v6a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6M13 1h6v6M8 12 19 1"/></svg>
-                                        </a></td>
+                                        <td class="p-3">
+                                            <a :href="article.editUrl" target="_blank" x-on:click.stop="" class="hover:stroke-amber-700 stroke-slate-500">
+                                                <svg xmlns="http://www.w3.org/2000/svg" style="transform: scale(0.75)" width="20" height="20"><path fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11v6a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6M13 1h6v6M8 12 19 1"/></svg>
+                                            </a>
+                                        </td>
                                     </tr>
                                     <tr class="even:bg-white select-none" 
                                         x-show="article.context.length > 0">
@@ -507,7 +508,7 @@
                             <template x-for="finding in filteredFindings" :key="finding.word">
                                 <tr class="odd:bg-slate-50 even:bg-white hover:cursor-pointer hover:bg-slate-100" 
                                     :class="{ '!bg-amber-200': finding.selected }"
-                                    x-on:click="(finding.selected = !finding.selected); toggleShowContext(finding)">
+                                    x-on:click="(finding.selected = !finding.selected);">
                                     <td x-text="`${finding.word}`" class="px-3 py-1.5 w-full"></td>
                                     <td class="px-3 py-1.5">
                                         <!--question--><svg x-show="finding.refs.length > 0 && !finding.ignore" xmlns="http://www.w3.org/2000/svg" class="stroke-amber-500 fill-amber-500" viewBox="0 0 256 256" width="20" height="20"><rect width="256" height="256" fill="none"/><circle cx="128" cy="128" r="96" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="180" r="12"/><path fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="16" d="M127.9995,144.0045v-8a28,28,0,1,0-28-28"/></svg>
