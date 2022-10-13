@@ -368,7 +368,7 @@
                         const selectedArticleUrls = this.articles.filter(a => a.selected).map(a => a.url)
 
                         return this.findings.filter(f => 
-                            (this.showIgnored || !f.ignore) &&
+                            (this.showIgnored || (!f.ignore && f.refs.length > 0)) &&
                             ((this.filterFindingsBySelectedArticles && (selectedArticleUrls.length === 0 || 
                                 f.refs.some(r => selectedArticleUrls.includes(r.url))
                             ))
