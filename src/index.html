@@ -81,7 +81,7 @@
                 return decodeHTMLEntities(noColon)
             }
 
-            function createArticle(articleData, filteredFindings){
+            function createArticle(articleData, findings){
                 return {
                     url: articleData.url,
                     lastmod: articleData.lastmod,
@@ -91,7 +91,7 @@
                     selected: articleData.selected || false,
                     get context(){
                         let contexts = []
-                        filteredFindings.filter(f => !f.ignore).filter(f => f.selected).forEach(f => {
+                        findings.filter(f => !f.ignore).filter(f => f.selected).forEach(f => {
                             contexts.push(...f.refs.filter(r => r.url === articleData.url).map(r => r.context))
                         })
                         return contexts.join('<br/>')
@@ -416,20 +416,23 @@
             <div x-data="{ ...$el.parentElement.data(), id: Math.floor(Math.random()*10000) }">
                 <label :for="`${id}`" class="inline-flex relative items-center cursor-pointer">
                     <input type="checkbox" :id="`${id}`" x-on:change="$el.parentElement.parentElement.parentElement._x_model.set($el.checked)" class="sr-only peer">
-                    <div class="w-11 h-6 bg-gray-300 rounded-md peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-md after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
-                    <span class="ml-2 whitespace-nowrap text-sm font-medium text-gray-900" x-text="`${text}`"></span>
+                    <div class="w-11 h-6 bg-zinc-700 rounded-md peer 
+                    after:content-[''] after:absolute after:top-[2px] after:left-[2px] 
+                    after:bg-amber-800 after:opacity-75 after:border-zinc-700 after:border after:rounded-md after:h-5 after:w-5 after:transition-all 
+                    peer-checked:bg-zinc-700 peer-checked:after:bg-amber-700 hover:after:opacity-100 peer-hover:after:opacity-100 peer-checked:after:opacity-100 peer-checked:after:translate-x-full peer-checked:after:border-zinc-700"></div>
+                    <span class="ml-2 whitespace-nowrap text-sm font-medium text-gray-300 opacity-75 peer-checked:opacity-100 peer-hover:opacity-100 hover:opacity-100" x-text="`${text}`"></span>
                 </label>
             </div>
         </template>
     </head> 
-    <body x-data="spelljackApp()" class="font-sans m-5 container mx-auto text-gray-800 bg-amber-50">
+    <body x-data="spelljackApp()" class="font-sans m-5 container mx-auto text-gray-300 bg-stone-800">
         <div class="flex flex-row gap-10">
             <article class="basis-2/3">
                 <h1 class="text-xl">Articles</h1>
-                <div class="py-3 pb-8 flex gap-4 items-center">
-                    <button x-on:click.prevent="scanSelected()" :class="{'!bg-slate-400 !cursor-not-allowed': nrOfSelectedArticles == 0}">
+                <div class="py-3 pb-8 flex gap-6 items-center">
+                    <button x-on:click.prevent="scanSelected()" :class="{'!bg-amber-800 opacity-75 !cursor-not-allowed': nrOfSelectedArticles == 0}">
                         Check spelling
-                        <svg x-show="scanning" class="stroke-amber-200 inline ml-1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="margin:auto;background:transparent;display:block;" width="20px" height="20px" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid">
+                        <svg x-show="scanning" class="stroke-zinc-200 inline ml-1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="margin:auto;background:transparent;display:block;" width="20px" height="20px" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid">
                             <path fill="none" stroke-width="8" stroke-dasharray="42.76482137044271 42.76482137044271" d="M24.3 30C11.4 30 5 43.3 5 50s6.4 20 19.3 20c19.3 0 32.1-40 51.4-40 C88.6 30 95 43.3 95 50s-6.4 20-19.3 20C56.4 70 43.6 30 24.3 30z" stroke-linecap="round" style="transform:scale(0.8);transform-origin:50px 50px">
                               <animate attributeName="stroke-dashoffset" repeatCount="indefinite" dur="7.142857142857142s" keyTimes="0;1" values="0;256.58892822265625"></animate>
                             </path>
@@ -438,7 +441,7 @@
                     </button>
                     <x-toggle-button text="Filter finding" x-model="filterFindingsBySelectedArticles"></x-toggle-button>
                 </div>
-                <div class="shadow-lg relative" style="height: calc(100vh - 9rem)">
+                <div class="shadow-lg shadow-gray-900 relative" style="height: calc(100vh - 9rem)">
                     <div class="absolute right-0 z-50 opacity-50 hover:opacity-100 font-bold" style="top: -25px;">
                         <button x-on:click="page = Math.max(page-1, 1)" style="
                         border-top-right-radius: 0;
@@ -462,20 +465,20 @@
                             </thead>
                             <template x-for="article in filteredArticles" :key="article.url">
                                 <tbody>
-                                    <tr class="odd:bg-slate-50 even:bg-white select-none hover:cursor-pointer hover:bg-slate-100 border-b-2 border-b-white" 
-                                        :class="{ '!bg-amber-200': article.selected }"
+                                    <tr class="odd:bg-zinc-700 even:bg-white select-none hover:cursor-pointer hover:bg-zinc-600 border-b-2 border-b-zinc-600" 
+                                        :class="{ '!bg-amber-900/25': article.selected }"
                                         x-on:click="article.selected = !article.selected">
                                         <td x-text="`${article.title}`"
                                             class="px-3 py-3 max-w-prose truncate"></td>
                                         <td x-text="`${dateLabel(article.lastmod)}`" class="px-3 py-3 text-xs whitespace-nowrap"></td>
                                         <td x-text="`${lastCheckLabel(article)}`" class="px-3 py-3 text-xs whitespace-nowrap"></td>
                                         <td class="p-3">
-                                            <a :href="article.editUrl" target="_blank" x-on:click.stop="" class="hover:stroke-amber-700 stroke-slate-500">
+                                            <a :href="article.editUrl" target="_blank" x-on:click.stop="" class="hover:stroke-amber-600 stroke-stone-500">
                                                 <svg xmlns="http://www.w3.org/2000/svg" style="transform: scale(0.75)" width="20" height="20"><path fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11v6a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6M13 1h6v6M8 12 19 1"/></svg>
                                             </a>
                                         </td>
                                     </tr>
-                                    <tr class="even:bg-white select-none" 
+                                    <tr class="even:bg-zinc-600 select-none" 
                                         x-show="article.context.length > 0">
                                         <td colspan="4" 
                                             x-html="`${article.context}`"
@@ -491,11 +494,11 @@
             <article class="basis-1/3">
                 <h1 class="text-xl">Findings</h1>
                 <div class="py-3 pb-8 flex flex-row gap-4 justify-between items-center">
-                    <button x-on:click.prevent="toggleIgnoreSelected()" :class="{'!bg-slate-400 !cursor-not-allowed': nrOfSelectedFindings === 0}">Toggle ignore</button>
+                    <button x-on:click.prevent="toggleIgnoreSelected()" :class="{'!bg-amber-800 opacity-50 !cursor-not-allowed': nrOfSelectedFindings === 0}">Toggle ignore</button>
                     <x-toggle-button text="Show ignored" x-model="showIgnored"></x-toggle-button>
                     <x-toggle-button text="Filter articles" x-model="filterArticlesBySelectedFindings"></x-toggle-button>
                 </div>
-                <div class="overflow-y-scroll shadow-lg w-full" style="height: calc(100vh - 9rem)">
+                <div class="overflow-y-scroll shadow-lg shadow-gray-900 w-full" style="height: calc(100vh - 9rem)">
                     <svg x-show="findingsLoading" class="stroke-amber-700" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="margin:auto;background:transparent;display:block;" width="100px" height="100px" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid">
                         <path fill="none" stroke-width="8" stroke-dasharray="42.76482137044271 42.76482137044271" d="M24.3 30C11.4 30 5 43.3 5 50s6.4 20 19.3 20c19.3 0 32.1-40 51.4-40 C88.6 30 95 43.3 95 50s-6.4 20-19.3 20C56.4 70 43.6 30 24.3 30z" stroke-linecap="round" style="transform:scale(0.8);transform-origin:50px 50px">
                           <animate attributeName="stroke-dashoffset" repeatCount="indefinite" dur="7.142857142857142s" keyTimes="0;1" values="0;256.58892822265625"></animate>
@@ -505,14 +508,14 @@
                     <table class="w-full">
                         <tbody>
                             <template x-for="finding in filteredFindings" :key="finding.word">
-                                <tr class="odd:bg-slate-50 even:bg-white hover:cursor-pointer hover:bg-slate-100" 
-                                    :class="{ '!bg-amber-200': finding.selected }"
+                                <tr class="odd:bg-zinc-700 even:bg-zinc-700/80 hover:cursor-pointer hover:bg-zinc-600" 
+                                    :class="{ '!bg-amber-900/25': finding.selected }"
                                     x-on:click="(finding.selected = !finding.selected);">
                                     <td x-text="`${finding.word}`" class="px-3 py-1.5 w-full"></td>
                                     <td class="px-3 py-1.5">
-                                        <!--question--><svg x-show="finding.refs.length > 0 && !finding.ignore" xmlns="http://www.w3.org/2000/svg" class="stroke-amber-500 fill-amber-500" viewBox="0 0 256 256" width="20" height="20"><rect width="256" height="256" fill="none"/><circle cx="128" cy="128" r="96" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="180" r="12"/><path fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="16" d="M127.9995,144.0045v-8a28,28,0,1,0-28-28"/></svg>
-                                        <!--book--><svg x-show="finding.ignore" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path d="M13 10H3c-.55 0-1 .45-1 1s.45 1 1 1h10c.55 0 1-.45 1-1s-.45-1-1-1zm0-4H3c-.55 0-1 .45-1 1s.45 1 1 1h10c.55 0 1-.45 1-1s-.45-1-1-1zm5 8v-3c0-.55-.45-1-1-1s-1 .45-1 1v3h-3c-.55 0-1 .45-1 1s.45 1 1 1h3v3c0 .55.45 1 1 1s1-.45 1-1v-3h3c.55 0 1-.45 1-1s-.45-1-1-1h-3zM3 16h6c.55 0 1-.45 1-1s-.45-1-1-1H3c-.55 0-1 .45-1 1s.45 1 1 1z"/></svg>
-                                        <!--check--><svg x-show="!finding.ignore && finding.refs.length === 0" xmlns="http://www.w3.org/2000/svg" class="fill-green-500" viewBox="0 0 64 64" width="16" height="16"><path d="M20.27,52.78a3,3,0,0,0,4.24,0L61.1,16.19A3,3,0,0,0,56.86,12L22.39,46.42,7,31.07A3,3,0,1,0,2.8,35.31Z"/></svg>
+                                        <!--question--><svg x-show="finding.refs.length > 0 && !finding.ignore" xmlns="http://www.w3.org/2000/svg" class="stroke-amber-600 fill-amber-600" viewBox="0 0 256 256" width="20" height="20"><rect width="256" height="256" fill="none"/><circle cx="128" cy="128" r="96" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="180" r="12"/><path fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="16" d="M127.9995,144.0045v-8a28,28,0,1,0-28-28"/></svg>
+                                        <!--book--><svg x-show="finding.ignore" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" class="fill-stone-500"><path d="M13 10H3c-.55 0-1 .45-1 1s.45 1 1 1h10c.55 0 1-.45 1-1s-.45-1-1-1zm0-4H3c-.55 0-1 .45-1 1s.45 1 1 1h10c.55 0 1-.45 1-1s-.45-1-1-1zm5 8v-3c0-.55-.45-1-1-1s-1 .45-1 1v3h-3c-.55 0-1 .45-1 1s.45 1 1 1h3v3c0 .55.45 1 1 1s1-.45 1-1v-3h3c.55 0 1-.45 1-1s-.45-1-1-1h-3zM3 16h6c.55 0 1-.45 1-1s-.45-1-1-1H3c-.55 0-1 .45-1 1s.45 1 1 1z"/></svg>
+                                        <!--check--><svg x-show="!finding.ignore && finding.refs.length === 0" xmlns="http://www.w3.org/2000/svg" class="fill-green-600" viewBox="0 0 64 64" width="16" height="16"><path d="M20.27,52.78a3,3,0,0,0,4.24,0L61.1,16.19A3,3,0,0,0,56.86,12L22.39,46.42,7,31.07A3,3,0,1,0,2.8,35.31Z"/></svg>
                                     </td>
                                 </tr>
                             </template>
@@ -521,15 +524,15 @@
                 </div>
             </article>
         </div>
-        <footer class="text-sm text-gray-500 mt-10">
+        <footer class="text-sm text-gray-300 mt-10">
             <p>
-                SVG icons from <a href="https://iconscout.com">IconScout</a> by <a href="https://iconscout.com/contributors/feathericons">Feather Icons</a>, <a href="https://iconscout.com/contributors/eva-icons">Akveo</a>, <a href="https://iconscout.com/contributors/andinur">Andi Nur Abdillah</a>
+                SVG icons from <a href="https://iconscout.com" class="hover:text-white">IconScout</a> by <a href="https://iconscout.com/contributors/feathericons" class="hover:text-white">Feather Icons</a>, <a href="https://iconscout.com/contributors/eva-icons" class="hover:text-white">Akveo</a>, <a href="https://iconscout.com/contributors/andinur" class="hover:text-white">Andi Nur Abdillah</a>
             </p>
             <p>
-                SVG icons from <a href="https://loading.io/license/#free-license">loading.io</a>
+                SVG icons from <a href="https://loading.io/license/#free-license" class="hover:text-white">loading.io</a>
             </p>
             <p>
-                Code at <a href="https://github.com/ideadapt/spelljack">ideadapts spelljack repo</a>
+                Code at <a href="https://github.com/ideadapt/spelljack" class="hover:text-white">ideadapts spelljack repo</a>
             </p>
         </footer>
         <script type="module">
