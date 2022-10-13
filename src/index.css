@@ -18,3 +18,25 @@
         font-style: normal;
     }
 }
+
+@layer base{
+  /* Firefox */
+  * {
+    scrollbar-color: theme(colors.stone.900) transparent;
+  }
+
+  /* Chrome, Edge, and Safari */
+  *::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    @apply bg-stone-900;
+    border-radius: 0px;
+    border-width: 0px;
+  }
+}
