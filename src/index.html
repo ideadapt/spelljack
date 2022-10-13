@@ -69,9 +69,9 @@
             }
 
             function decodeHTMLEntities(text) {
-                const textArea = document.createElement('textarea');
-                textArea.innerHTML = text;
-                return textArea.value;
+                const textArea = document.createElement('textarea')
+                textArea.innerHTML = text
+                return textArea.value
             }
 
             function normalizeContent(articleContent){
@@ -91,7 +91,7 @@
                     selected: articleData.selected || false,
                     get context(){
                         let contexts = []
-                        filteredFindings.filter(f => f.selected).forEach(f => {
+                        filteredFindings.filter(f => !f.ignore).filter(f => f.selected).forEach(f => {
                             contexts.push(...f.refs.filter(r => r.url === articleData.url).map(r => r.context))
                         })
                         return contexts.join('<br/>')
@@ -255,7 +255,6 @@
             }
 
             // TODO
-            // clean up findings: remove english words, remove umlaute-leftovers
 
             window.spelljackApp = function(){
                 return {
@@ -281,13 +280,13 @@
                             if(articles.length === 0){
                                 return Promise.all(sitemapUrls.map(getArticles)).then(sitemapsArticles => {
                                     for(const sitemapArticles of sitemapsArticles){
-                                        this.articles.push(...sitemapArticles.map(a => createArticle(a, this.filteredFindings)))
+                                        this.articles.push(...sitemapArticles.map(a => createArticle(a, this.findings)))
                                     }
                                     this.articlesLoading = false
                                     store({ articles: this.articles })
                                 })
                             }else{
-                                this.articles = articles.map(a => createArticle(a, this.filteredFindings))
+                                this.articles = articles.map(a => createArticle(a, this.findings))
 
                                 const existingArticleUrls = this.articles.map(a => a.url)
                                 const countBefore = this.articles.length
@@ -298,7 +297,7 @@
                                             if(existingArticleUrls.includes(sitemapArticle.url)){
                                                 return true
                                             }
-                                            this.articles.unshift(createArticle(sitemapArticle, this.filteredFindings))
+                                            this.articles.unshift(createArticle(sitemapArticle, this.findings))
                                         })
                                     }
                                     const hasNew = countBefore < this.articles.length
