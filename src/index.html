@@ -288,16 +288,17 @@
                             }else{
                                 this.articles = articles.map(a => createArticle(a, this.findings))
 
-                                const existingArticleUrls = this.articles.map(a => a.url)
                                 const countBefore = this.articles.length
 
                                 return Promise.all(sitemapUrls.map(getArticles)).then(sitemapsArticles => {
                                     for(const sitemapArticles of sitemapsArticles){
-                                        sitemapArticles.some(sitemapArticle => {
-                                            if(existingArticleUrls.includes(sitemapArticle.url)){
-                                                return true
+                                        sitemapArticles.forEach(sitemapArticle => {
+                                            const existingArticle = this.articles.find(a => a.url === sitemapArticle.url)
+                                            if(existingArticle){
+                                                existingArticle.lastmod = sitemapArticle.lastmod
+                                            }else{
+                                                this.articles.unshift(createArticle(sitemapArticle, this.findings))
                                             }
-                                            this.articles.unshift(createArticle(sitemapArticle, this.findings))
                                         })
                                     }
                                     const hasNew = countBefore < this.articles.length
