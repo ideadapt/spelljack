@@ -1,6 +1,6 @@
 export default {
     // the wordpress sitemap urls. used to extract atricles from.
-    sitemap_urls: ['https://www.myblog.me/sitemaps/post-sitemap1.xml'],
+    sitemap_urls: ['https://www.myblog.me/post-sitemap1.xml'],
     // id of the dictionary containing the ignored words. only [a-z_-] allowed.
     dict_name: "mydict",
     // title of the dictionary.
