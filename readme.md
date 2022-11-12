@@ -50,7 +50,7 @@ docker run --name spelljack --rm --env-file=server/.env -p3000:3000 ideadapt/spe
 
 ## Features
 
-- Load articles from a sitemap (currently WordPress supported)
+- Load articles from sitemaps
 - Scan articles for spelling errors
 - Manage spelling errors: add word to dictionary, automatically mark error as fixed on article rescan
 - Show articles containing selected misspelled words
@@ -71,6 +71,7 @@ docker run --name spelljack --rm --env-file=server/.env -p3000:3000 ideadapt/spe
 - GitHub gist API for storage
 - Some SVG
 - Docker for all in one deployment
+- Support for GitHub dev container
 
 
 # What more?
