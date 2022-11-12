@@ -2,11 +2,11 @@
 
 Ever wanted to comfortably check multiple articles for spelling errors and manage those errors in one palace?
 
-<img src="https://github.com/ideadapt/spelljack/raw/main/doc/screenshot.png" width="300">
+<img src="https://github.com/ideadapt/spelljack/raw/main/doc/spelljack.png" width="300">
 
 # Setup
 
-You must have Node >= 14 and Deno >= 1.26 installed on your machine.
+You must have Node >= 19 and Deno >= 1.26 installed on your machine.
 
 1. Generate a GitHub access token with gist scope: https://github.com/settings/tokens/new?scopes=gist.
    Set it in server env config `gh_gist_token`.
