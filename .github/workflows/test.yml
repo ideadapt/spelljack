@@ -18,6 +18,8 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
+      - name: Setup
+        run: cp config.example.js config.js
       - run: npm ci
       - run: npm run dist
       - run: npm test
