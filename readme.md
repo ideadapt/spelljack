@@ -6,6 +6,8 @@ Ever wanted to comfortably check multiple articles for spelling errors and manag
 
 # Setup
 
+[![Node.js CI](https://github.com/ideadapt/spelljack/actions/workflows/test.yml/badge.svg)](https://github.com/ideadapt/spelljack/actions/workflows/test.yml)
+
 You must have Node >= 19 and Deno >= 1.26 installed on your machine.
 
 1. Generate a GitHub access token with gist scope: https://github.com/settings/tokens/new?scopes=gist.
