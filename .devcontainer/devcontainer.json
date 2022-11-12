@@ -25,5 +25,11 @@
 		}
 	},
 
+	"features": {
+		"ghcr.io/devcontainers/features/sshd:1": {
+			"version": "latest"
+		}
+	},
+
 	"remoteUser": "vscode"
 }
