@@ -7,7 +7,7 @@
         
         <script type="module">
             import config from '/config.js'
-            import {mergeFindings} from './spelljack.mjs'
+            import {mergeFindings, initComponents} from './spelljack.mjs'
 
             let editor_password = localStorage.getItem('spelljack_editor_password') || ''
             
@@ -16,7 +16,7 @@
                 .replace(/\/\d\d\d\d\/\d\d\/\d\d\//, '')
                 .replace(/\/$/, '')
                 .replaceAll('-', ' '))
-            const urlFilter = config.urlFilter || ((sitemapUrl, url) => new URL(url).hostname === new URL(sitemapUrl).hostname)
+            const urlFilter = config.urlFilter || ((sitemapUrl, articleUrl) => new URL(articleUrl).hostname === new URL(sitemapUrl).hostname)
 
             function tryLogin(response, reload = false){
                 if(response.status === 401){
@@ -395,24 +395,7 @@
                 }
             }
             window.addEventListener('DOMContentLoaded', ()=>{
-                document.querySelectorAll('[x-component]').forEach(component => {
-                    const componentName = `x-${component.getAttribute('x-component')}`
-                    class Component extends HTMLElement {
-                        connectedCallback() {
-                            this.append(component.content.cloneNode(true))
-                        }
-            
-                        data() {
-                            const attributes = this.getAttributeNames()
-                            const data = {}
-                            attributes.forEach(attribute => {
-                                data[attribute] = this.getAttribute(attribute)
-                            })
-                            return data
-                        }
-                    }
-                    customElements.define(componentName, Component)
-                })
+                initComponents()
             })
         </script>
         <template x-component="toggle-button">

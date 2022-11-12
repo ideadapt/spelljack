@@ -14,6 +14,6 @@ export default {
     urlToTitle: url => url,
     // optional. exclude some urls, although they are listed in the sitemap. return true to include, return false to exclude.
     // this might be useful if you have a multi language wordpress setup.
-    // if not set, the default is used: only include if sitemapUrl and url hostnames are equal.
-    urlFilter: (sitemapUrl, url) => true
+    // if not set, the default is used: only include if hostname of sitemapUrl and articleUrl are equal.
+    urlFilter: (sitemapUrl, articleUrl) => true
 }

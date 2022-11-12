@@ -36,3 +36,24 @@ export function mergeFindings(findings, existingFindings){
     existingFindings.push(...(newFindings.values()))
     return existingFindings
 }
+
+export function initComponents(){
+    document.querySelectorAll('[x-component]').forEach(component => {
+        const componentName = `x-${component.getAttribute('x-component')}`
+        class Component extends HTMLElement {
+            connectedCallback() {
+                this.append(component.content.cloneNode(true))
+            }
+
+            data() {
+                const attributes = this.getAttributeNames()
+                const data = {}
+                attributes.forEach(attribute => {
+                    data[attribute] = this.getAttribute(attribute)
+                })
+                return data
+            }
+        }
+        customElements.define(componentName, Component)
+    })
+}
