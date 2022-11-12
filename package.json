@@ -5,7 +5,7 @@
   "scripts": {
     "server": "deno run --allow-net --allow-env --allow-read ./server/main.ts",
     "server:dev": "denon run --allow-net --allow-env --allow-read ./server/main.ts",
-    "dev": "rm -rf dist/*.* && npx parcel src/index.html --open",
+    "dev": "rm -rf dist/*.* && npx parcel src/index.html",
     "dist": "rm -rf dist/*.* && npx parcel build src/index.html --public-url ./",
     "docker:build": "docker build --no-cache -t ideadapt/spelljack:1.0.0 .",
     "docker:push": "docker push ideadapt/spelljack:1.0.0",
