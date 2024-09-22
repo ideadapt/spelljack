@@ -23,6 +23,7 @@ const editor_password = getConfig('editor_password')
 const app = new Application()
 const router = new Router()
 const octokit = new Octokit({ auth: gh_gist_token })
+const rawOctokit = new Octokit({ auth: gh_gist_token, baseUrl: 'https://gist.githubusercontent.com' })
 
 function isAuthorized(request: Request){
   const auth = request.headers.get('Authorization')
@@ -35,7 +36,7 @@ function isAuthorized(request: Request){
 }
 
 function applyCorsHeaders(response: Response, request: Request){
-  const origin = request.headers.get('origin') as string
+  const origin = request.headers.get('origin') as string  
   if(origin){
     const originUrl = new URL(origin)
     if(allowedOriginHosts.includes(originUrl.hostname)){
@@ -91,8 +92,21 @@ router.get('/gists/:gist_id', async (context) => {
   const gist = await octokit.request(`GET /gists/${context.params.gist_id}`, {
     gist_id: context.params.gist_id
   })
-  const gistText = gist.data.files['db.json'].content
+  const dbFile = gist.data.files['db.json'];
+  let gistText = "";
+  // if db.json content is >1MB, github will truncate
+  // and only serve full content via raw_url.
+  if(dbFile.truncated === true){
+    const rawUrl = new URL(dbFile.raw_url);
+    const rawGist = await rawOctokit.request(`GET ${rawUrl.pathname}`, {
+      gist_id: context.params.gist_id
+    })
+    gistText = rawGist.data;
+  }else{
+    gistText = dbFile.content;
+  }
   const gistJson = JSON.parse(gistText)
+
   // TODO should be on client side?
   if(!("findings" in gistJson)){
       gistJson.findings = []
