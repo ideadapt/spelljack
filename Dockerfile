@@ -1,4 +1,4 @@
-FROM denoland/deno:alpine-1.26.1
+FROM denoland/deno:alpine-1.31.1
 
 WORKDIR /server
 COPY server/ .
