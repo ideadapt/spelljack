@@ -1,7 +1,6 @@
 import { Status } from "https://deno.land/std@0.153.0/http/http_status.ts";
 import { Application, Context, Request, Response, Router } from "https://deno.land/x/oak@v11.1.0/mod.ts";
 import { proxy } from "https://deno.land/x/oak_http_proxy@2.1.0/mod.ts";
-import { Octokit } from "https://cdn.skypack.dev/octokit";
 import { config } from "https://deno.land/x/dotenv@v3.2.0/mod.ts";
 
 
@@ -22,8 +21,11 @@ const editor_password = getConfig('editor_password')
 
 const app = new Application()
 const router = new Router()
-const octokit = new Octokit({ auth: gh_gist_token })
-const rawOctokit = new Octokit({ auth: gh_gist_token, baseUrl: 'https://gist.githubusercontent.com' })
+const ghApiOpts =   {
+  headers: new Headers({'Authorization': gh_gist_token, "X-GitHub-Api-Version": "2022-11-28", 'accept': 'application/json'})
+}
+const octokit = (path: string, method = 'GET', body: object | null = null) => fetch('https://api.github.com'+path, { method, ...ghApiOpts, body: body ? JSON.stringify(body) : null})
+const rawOctokit = (path: string) => fetch('https://gist.githubusercontent.com'+path, ghApiOpts)
 
 function isAuthorized(request: Request){
   const auth = request.headers.get('Authorization')
@@ -89,23 +91,18 @@ router
 router.get('/gists/:gist_id', async (context) => {
   console.log('GET gist')
 
-  const gist = await octokit.request(`GET /gists/${context.params.gist_id}`, {
-    gist_id: context.params.gist_id
-  })
-  const dbFile = gist.data.files['db.json'];
-  let gistText = "";
+  const gist = await (await octokit(`/gists/${context.params.gist_id}`)).json();
+  const dbFile = gist.files['db.json'];
+  let gistJson = { articles: [], findings: []};
   // if db.json content is >1MB, github will truncate
   // and only serve full content via raw_url.
   if(dbFile.truncated === true){
     const rawUrl = new URL(dbFile.raw_url);
-    const rawGist = await rawOctokit.request(`GET ${rawUrl.pathname}`, {
-      gist_id: context.params.gist_id
-    })
-    gistText = rawGist.data;
+    const rawGist = await (await rawOctokit(`${rawUrl.pathname}`)).json();
+    gistJson = rawGist;
   }else{
-    gistText = dbFile.content;
+    gistJson = JSON.parse(dbFile.content);
   }
-  const gistJson = JSON.parse(gistText)
 
   // TODO should be on client side?
   if(!("findings" in gistJson)){
@@ -133,8 +130,7 @@ router
   }
   
   const state = await request.body({ type: 'json'}).value
-  await octokit.request(`PATCH /gists/${params.gist_id}`, {
-    gist_id: params.gist_id,
+  await octokit(`/gists/${params.gist_id}`, 'PATCH', {
     description: 'spelljack-db-' + dict_name,
     files: {
         'db.json': { content: JSON.stringify(state) }
