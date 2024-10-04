@@ -22,7 +22,7 @@ const editor_password = getConfig('editor_password')
 const app = new Application()
 const router = new Router()
 const ghApiOpts =   {
-  headers: new Headers({'Authorization': gh_gist_token, "X-GitHub-Api-Version": "2022-11-28", 'accept': 'application/json'})
+  headers: new Headers({'Authorization': 'Bearer ' + gh_gist_token, "X-GitHub-Api-Version": "2022-11-28", 'accept': 'application/json'})
 }
 const octokit = (path: string, method = 'GET', body: object | null = null) => fetch('https://api.github.com'+path, { method, ...ghApiOpts, body: body ? JSON.stringify(body) : null})
 const rawOctokit = (path: string) => fetch('https://gist.githubusercontent.com'+path, ghApiOpts)
