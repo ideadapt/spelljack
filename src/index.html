@@ -458,17 +458,22 @@
                                             class="px-3 py-3 max-w-prose truncate"></td>
                                         <td x-text="`${dateLabel(article.lastmod)}`" class="px-3 py-3 text-xs whitespace-nowrap"></td>
                                         <td x-text="`${lastCheckLabel(article)}`" class="px-3 py-3 text-xs whitespace-nowrap"></td>
-                                        <td class="p-3">
-                                            <a :href="article.editUrl" target="_blank" x-on:click.stop="">                                                
+                                        <td class="p-3 whitespace-nowrap">
+                                            <a :href="article.editUrl" target="_blank" title="Edit article" x-on:click.stop="" class="inline-block">
+                                                <svg class="feather-icon hover:stroke-amber-600 stroke-stone-500" style="width: 20px; height: 20px;"><use href="feather-sprite.svg#edit"/></svg>
+                                            </a>
+                                            <a :href="article.url" target="_blank" title="Read article" x-on:click.stop="" class="inline-block">
                                                 <svg class="feather-icon hover:stroke-amber-600 stroke-stone-500" style="width: 20px; height: 20px;"><use href="feather-sprite.svg#external-link"/></svg>
                                             </a>
                                         </td>
                                     </tr>
                                     <tr class="even:bg-zinc-600 select-none" 
                                         x-show="article.context.length > 0">
-                                        <td colspan="4" 
-                                            x-html="`${article.context}`"
+                                        <td colspan="4"
                                             class="px-3 py-3 text-sm finding-context">
+                                            <a :href="article.url + '#:~:text=' + article.context.replace(/<em>/, '').replace(/<\/em>/, '')" target="_blank" title="View article with error highlighted">
+                                                <span x-html="`${article.context}`"></span>
+                                            </a>
                                         </td>
                                     </tr>
                                 </tbody>
