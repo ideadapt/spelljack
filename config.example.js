@@ -10,7 +10,7 @@ export default {
     // http endpoint of the server.
     proxy_root: 'http://localhost:3000',
     // optional. transform a sitemap post url to a human friendly title. especially useful if your urls contain a post title slug.
-    // if not set, the default is used: https://blog.me/2022/10/04/first-blog-post-ever/ => first blog post ever
+    // if not set, the default is used: 'https://blog.me/2022/10/04/first-blog-post-ever/' => 'first blog post ever'
     urlToTitle: url => url,
     // optional. exclude some urls, although they are listed in the sitemap. return true to include, return false to exclude.
     // this might be useful if you have a multi language wordpress setup.

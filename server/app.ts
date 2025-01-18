@@ -1,13 +1,12 @@
-import { Status } from "https://deno.land/std@0.153.0/http/http_status.ts";
-import { Application, Context, Request, Response, Router } from "https://deno.land/x/oak@v11.1.0/mod.ts";
-import { proxy } from "https://deno.land/x/oak_http_proxy@2.1.0/mod.ts";
-import { config } from "https://deno.land/x/dotenv@v3.2.0/mod.ts";
+import * as http from "@std/http";
+import { Application, Context, Request, Response, Router }  from "@oak/oak";
+import { loadSync } from "@std/dotenv";
 
 
-function getConfig(key: string): string{
+function getConfig(key: string): string {
   let envVal = Deno.env.get(key)
   if(!envVal){
-    envVal = config({ path: `${Deno.cwd()}/server/.env` })[key]
+    envVal = loadSync({ envPath: `${Deno.cwd()}/server/.env` })[key] as string
   }
   console.log(`env: ${key}=${envVal}`)
   return envVal
@@ -37,7 +36,7 @@ function isAuthorized(request: Request){
   }
 }
 
-function applyCorsHeaders(response: Response, request: Request){
+function applyCorsHeaders(response: Response | globalThis.Response, request: Request){
   const origin = request.headers.get('origin') as string  
   if(origin){
     const originUrl = new URL(origin)
@@ -48,45 +47,47 @@ function applyCorsHeaders(response: Response, request: Request){
     response.headers.set('Access-Control-Allow-Methods', 'OPTIONS, PATCH, POST, GET')
     response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
   }
-  response.status = Status.OK
 }
 
 router
-.get("/proxy", proxy((context: Context) => {
-  applyCorsHeaders(context.response, context.request)
-  const target = context.request.url.searchParams.get('url') as string
+.get("/proxy", async (context: Context) => {
+  const target = new URL(context.request.url.searchParams.get('url') || 'url query parameter missing')
   console.log('GET target url', target)
-  return new URL(target)
-}))
+  const originResponse = await fetch(target, { method: 'GET' });
+  applyCorsHeaders(context.response, context.request)
+  context.response.body = await originResponse.text()
+})
 
 router
-.options('/proxy', ({request, response}) => applyCorsHeaders(response, request))
-.post("/proxy", proxy((context: Context) => {
-  const target = context.request.url.searchParams.get('url') as string
-  console.log('POST target url', target)
-  return new URL(target)
-}, {
-  filterReq(request: Request, response: Response){
-    if(request.method !== 'OPTIONS' && !isAuthorized(request)){
-      console.log('Not authorized!')
-      applyCorsHeaders(response, request)
-      response.status = Status.Unauthorized
-      return true
-    }
-    return false
-  },
-  proxyReqInitDecorator(proxyReqOpts, srcReq: Request) {
-    const target = new URL(srcReq.url.searchParams.get('url') as string)
+.options('/proxy', ({request, response}) => {
+  applyCorsHeaders(response, request)
+  response.status = http.STATUS_CODE.OK
+})
+.post("/proxy", async (context: Context) => {
+  const request = context.request
+  const response = context.response
 
-    if(target.hostname === 'api.textgears.com'){
-          const json = JSON.parse(proxyReqOpts.body as string)
-          json.key = key
-          proxyReqOpts.body = JSON.stringify(json)
-    }
-
-    return proxyReqOpts;
+  if(request.method !== 'OPTIONS' && !isAuthorized(request)){
+    console.log('Not authorized!')
+    applyCorsHeaders(response, request)
+    response.status = http.STATUS_CODE.Unauthorized
+    return response
   }
-}))
+
+  const target = new URL(request.url.searchParams.get('url') || 'url query parameter missing')
+
+  let patchedBody = await request.body.text()
+  if(target.hostname === 'api.textgears.com'){
+    const json = await request.body.json()
+    json.key = key
+    patchedBody = JSON.stringify(json)
+  }
+
+  console.log('POST target url', target)
+  const originResponse = await fetch(target, { method: 'POST', body: patchedBody });
+  applyCorsHeaders(response, request)
+  response.body = await originResponse.text()
+})
 
 router.get('/gists/:gist_id', async (context) => {
   console.log('GET gist')
@@ -104,32 +105,36 @@ router.get('/gists/:gist_id', async (context) => {
     gistJson = JSON.parse(dbFile.content);
   }
 
-  // TODO should be on client side?
   if(!("findings" in gistJson)){
-      gistJson.findings = []
+    // @ts-ignore init property
+    gistJson.findings = []
   }
   if(!("articles" in gistJson)){
-      gistJson.articles = []
+    // @ts-ignore init property
+    gistJson.articles = []
   }
   applyCorsHeaders(context.response, context.request)
   context.response.headers.set('Content-Type', 'application/json')
   context.response.body = gistJson
-  context.response.status = Status.OK
+  context.response.status = http.STATUS_CODE.OK
 })
 
 router
-.options('/gists/:gist_id', ({request, response}) => applyCorsHeaders(response, request))
+.options('/gists/:gist_id', ({request, response}) => {
+  applyCorsHeaders(response, request)
+  response.status = http.STATUS_CODE.OK
+})
 .patch('/gists/:gist_id', async ({request, response, params}) => {
   console.log('PATCH gist')
 
   if(!isAuthorized(request)){
     console.log('Not authorized!')
     applyCorsHeaders(response, request)
-    response.status = Status.Unauthorized
+    response.status = http.STATUS_CODE.Unauthorized
     return
   }
   
-  const state = await request.body({ type: 'json'}).value
+  const state = await request.body.json()
   await octokit(`/gists/${params.gist_id}`, 'PATCH', {
     description: 'spelljack-db-' + dict_name,
     files: {
@@ -139,7 +144,7 @@ router
 
   applyCorsHeaders(response, request)
   response.headers.set('Content-Type', 'application/json')
-  response.status = Status.OK
+  response.status = http.STATUS_CODE.OK
   response.body = JSON.stringify("{}")
 })
 
