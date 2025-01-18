@@ -52,7 +52,7 @@ function applyCorsHeaders(response: Response | globalThis.Response, request: Req
 router
 .get("/proxy", async (context: Context) => {
   const target = new URL(context.request.url.searchParams.get('url') || 'url query parameter missing')
-  console.log('GET target url', target)
+  console.log('GET target url', target.toString())
   const originResponse = await fetch(target, { method: 'GET' });
   applyCorsHeaders(context.response, context.request)
   context.response.body = await originResponse.text()
@@ -83,7 +83,7 @@ router
     patchedBody = JSON.stringify(json)
   }
 
-  console.log('POST target url', target)
+  console.log('POST target url', target.toString())
   const originResponse = await fetch(target, { method: 'POST', body: patchedBody });
   applyCorsHeaders(response, request)
   response.body = await originResponse.text()

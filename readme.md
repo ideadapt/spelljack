@@ -73,7 +73,7 @@ docker run --name spelljack --rm --env-file=server/.env -p3000:3000 ideadapt/spe
 - Support for GitHub dev container
 
 
-# What more?
+# What more / TODO?
 
 - Support multiple editor_passwords (e.g. one per author / role)
 - Support article sources other than wordpress blog posts
