@@ -32,7 +32,7 @@ You must have Node >= 19 and Deno >= 2 installed on your machine.
 1. Every time you push, the denoland project is deployed automagically.
 1. Set frontend config `proxy_root` to endpoint of deployed server, e.g. https://ideadapt-spelljack.deno.dev
 1. Build frontend project for prod usage: `npm run dist`
-1. Deploy dist directory to any static web host.
+1. Deploy dist directory to any static web host. E.g. `rsync -vh --recursive --delete dist/*.* cyon:~/www/spelljack`
 
 ## Docker / Podman
 
