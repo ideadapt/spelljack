@@ -9,9 +9,6 @@
     "dist": "rm -rf dist/*.* && npx parcel build src/index.html --public-url ./",
     "docker:build": "podman build --no-cache -t ideadapt/spelljack:1.0.0 .",
     "docker:push": "podman push ideadapt/spelljack:1.0.0",
-    "fly:secrets": "cat server/.env | flyctl secrets import",
-    "fly:deploy": "flyctl deploy",
-    "docker:deploy": "npm run dist && npm run docker:build && npm run docker:push && npm run fly:deploy",
     "test": "npx mocha test/*.mjs",
     "test:watch": "nodemon --watch test --watch src --exec mocha test/*.mjs"
   },
