@@ -39,7 +39,7 @@
                     const parser = new DOMParser()
                     const xmlDoc = parser.parseFromString(xml, "text/xml")
                     return [...xmlDoc.querySelectorAll("url")]
-                            .slice(1)
+                            .filter(el => el.querySelector('lastmod'))
                             .map(el => ({
                                 url: el.querySelector('loc').textContent, 
                                 lastmod: el.querySelector('lastmod').textContent }))
