@@ -17,7 +17,7 @@
     "url": "git+https://github.com/ideadapt/spelljack.git"
   },
   "engines": {
-    "node": ">=19",
+    "node": ">=23",
     "deno": ">=2"
   },
   "browserslist": [
