@@ -75,7 +75,8 @@
             }
 
             function normalizeContent(articleContent){
-                const noHtml = articleContent.replaceAll(/<[^>]*>/g, " ")
+                const noScripts = articleContent.replace(/<script[\s\S]*?<\/script>/gi, "")
+                const noHtml = noScripts.replaceAll(/<[^>]*>/g, " ")
                 const noNewLines = noHtml.split(/\n/g).join(' ')
                 const noColon = noNewLines.replaceAll(':', '')
                 return decodeHTMLEntities(noColon)
