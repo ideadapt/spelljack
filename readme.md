@@ -27,10 +27,10 @@ You must have Node >= 19 and Deno >= 2 installed on your machine.
 
 ## Prod
 
-1. Only once: Set up a denoland project that connects to your repository. 
-1. Only once: Add environment variables defined locally in server env config in denoland project settings.
-1. Every time you push, the denoland project is deployed automagically.
-1. Set frontend config `proxy_root` to endpoint of deployed server, e.g. https://ideadapt-spelljack.deno.dev
+1. Only once: Set up a Deno Deploy project that connects to your repository. 
+1. Only once: Add environment variables defined locally in server env config in Deno Deploy project settings.
+1. Every time you push, the Deno Deploy project is deployed automagically.
+1. Set frontend config `proxy_root` to endpoint of deployed server, e.g. https://spelljack.ideadapt.deno.net
 1. Build frontend project for prod usage: `npm run dist`
 1. Deploy dist directory to any static web host. E.g. `rsync -vh --recursive --delete dist/*.* cyon:~/www/spelljack`
 
